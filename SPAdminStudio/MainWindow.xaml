@@ -1,0 +1,1767 @@
+<Window x:Class="SPAdminStudio.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+        xmlns:conv="clr-namespace:SPAdminStudio.Converters"
+        mc:Ignorable="d"
+        Title="SharePoint Admin Studio - On-Premises (2013, 2016, 2019)"
+        Height="880" Width="1420"
+        WindowStartupLocation="CenterScreen"
+        Background="#18181C" Foreground="#DCDCDC"
+        FontFamily="Segoe UI, Segoe UI Variable, Arial">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <conv:InverseBooleanConverter x:Key="InvBool"/>
+        <conv:StatusToBrushConverter x:Key="StatusBrush"/>
+        <conv:NullToVisibilityConverter x:Key="NullToVis"/>
+        <conv:NullToVisibilityConverter x:Key="NotNullToVis" Invert="True"/>
+        <conv:IntEqualsToVisibilityConverter x:Key="IntEqualsToVis"/>
+        <conv:DeployStatusToBrushConverter x:Key="DeployStatusBrush"/>
+        <conv:EnumToIndexConverter x:Key="EnumToIndex"/>
+
+        <!-- Modern Colors -->
+        <SolidColorBrush x:Key="BgDark" Color="#18181C"/>
+        <SolidColorBrush x:Key="BgCard" Color="#222228"/>
+        <SolidColorBrush x:Key="BgHeader" Color="#1F1F24"/>
+        <SolidColorBrush x:Key="AccentBlue" Color="#007ACC"/>
+        <SolidColorBrush x:Key="AccentHover" Color="#1C97EA"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#33333F"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#8E8E9E"/>
+
+        <!-- Toolbar Button Style -->
+        <Style x:Key="ToolBtn" TargetType="Button">
+            <Setter Property="Background" Value="#2A2A33"/>
+            <Setter Property="Foreground" Value="#ECECEC"/>
+            <Setter Property="BorderBrush" Value="#3F3F4D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#383845"/>
+                    <Setter Property="BorderBrush" Value="#525266"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.4"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Primary Accent Button -->
+        <Style x:Key="PrimaryBtn" TargetType="Button" BasedOn="{StaticResource ToolBtn}">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="BorderBrush" Value="#005A9E"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1C97EA"/>
+                    <Setter Property="BorderBrush" Value="#007ACC"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Modern DataGrid Style -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#1F1F24"/>
+            <Setter Property="Foreground" Value="#DCDCDC"/>
+            <Setter Property="BorderBrush" Value="#33333F"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#2D2D37"/>
+            <Setter Property="RowBackground" Value="#202026"/>
+            <Setter Property="AlternatingRowBackground" Value="#24242B"/>
+            <Setter Property="RowHeight" Value="32"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="SelectionUnit" Value="FullRow"/>
+            <Setter Property="SelectionMode" Value="Extended"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#2A2A33"/>
+            <Setter Property="Foreground" Value="#ABB2BF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderBrush" Value="#33333F"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+
+        <Style TargetType="DataGridRow">
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#264F78"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Site Explorer shared styles -->
+        <Style x:Key="InputBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#1A1A20"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#3F3F4D"/>
+            <Setter Property="CaretBrush" Value="#FFFFFF"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#202026"/>
+            <Setter Property="BorderBrush" Value="#33333F"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="16"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#8E8E9E"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,6,16,6"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="FieldValue" TargetType="TextBox">
+            <!-- Read-only, selectable value (so URLs can be copied) -->
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="#ECEFF4"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,6"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#8E8E9E"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <!-- Group headers for grouped grids (Lists / Libraries, Content Type and Column groups).
+             Header-only: a custom GroupItem template (e.g. Expander) breaks DataGrid column layout when data arrives after the grid is shown. -->
+        <GroupStyle x:Key="ExplorerGroupStyle">
+            <GroupStyle.HeaderTemplate>
+                <DataTemplate>
+                    <Border Background="#26262E" Padding="8,5">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#E5C07B"/>
+                            <TextBlock Text="{Binding ItemCount, StringFormat=' ({0})'}" Foreground="#8E8E9E"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </GroupStyle.HeaderTemplate>
+        </GroupStyle>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Top App Header -->
+            <RowDefinition Height="*"/>    <!-- Main Content Tabs -->
+            <RowDefinition Height="Auto"/> <!-- Status Bar -->
+        </Grid.RowDefinitions>
+
+        <!-- TOP APPLICATION HEADER -->
+        <Border Grid.Row="0" Background="#141418" BorderBrush="#2E2E38" BorderThickness="0,0,0,1" Padding="18,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Brand / Logo -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="⚡" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="SPAdminStudio" FontSize="18" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                    <Border Background="#252530" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="SharePoint 2013 • 2016 • 2019" FontSize="11" Foreground="#61AFEF" FontWeight="Medium"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Middle: Current Connected Site Title -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Ellipse Width="10" Height="10" Margin="0,0,8,0"
+                             Fill="{Binding IsConnected, Converter={StaticResource StatusBrush}}"/>
+                    <TextBlock Text="{Binding SiteTitle}" FontSize="14" FontWeight="SemiBold" Foreground="#E5C07B" VerticalAlignment="Center"/>
+                    <TextBlock Text=" — " Foreground="#5C6370" Margin="4,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding ConnectionStatusText}" FontSize="12" Foreground="#ABB2BF" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Right: User Info & Quick Disconnect -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="👤 " FontSize="13" Foreground="#98C379" VerticalAlignment="Center"
+                               Visibility="{Binding IsConnected, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock Text="{Binding UserInfo}" FontSize="13" Foreground="#ECEFF4" VerticalAlignment="Center"
+                               Visibility="{Binding IsConnected, Converter={StaticResource BoolToVis}}"/>
+                    <Button Content="Disconnect" Style="{StaticResource ToolBtn}" Padding="8,4" FontSize="11" Margin="14,0,0,0"
+                            Visibility="{Binding IsConnected, Converter={StaticResource BoolToVis}}"
+                            Command="{Binding ConnectionVM.DisconnectCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- MAIN TABS -->
+        <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}" Background="#18181C" BorderThickness="0">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#8E8E9E"/>
+                    <Setter Property="Padding" Value="18,10"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TabItem">
+                                <Border x:Name="TabBorder" Background="#1D1D23" BorderBrush="#2C2C36" BorderThickness="0,0,1,1" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" ContentSource="Header"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="TabBorder" Property="Background" Value="#252530"/>
+                                        <Setter TargetName="TabBorder" Property="BorderThickness" Value="0,3,0,0"/>
+                                        <Setter TargetName="TabBorder" Property="BorderBrush" Value="#007ACC"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Foreground" Value="#61AFEF"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+
+            <!-- TAB 1: CONNECTION & PROFILES -->
+            <TabItem Header="🔌 Connection &amp; Sites">
+                <Grid Margin="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Profiles List Panel -->
+                    <Border Grid.Column="0" Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6" Padding="16" Margin="0,0,20,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="SAVED PROFILES" FontSize="12" FontWeight="Bold" Foreground="#8E8E9E" Margin="0,0,0,10"/>
+
+                            <ListBox Grid.Row="1" ItemsSource="{Binding ConnectionVM.Profiles}"
+                                     SelectedItem="{Binding ConnectionVM.SelectedProfile}"
+                                     Background="#1A1A20" BorderBrush="#2E2E38" Foreground="#DCDCDC">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="6,4">
+                                            <TextBlock Text="{Binding ProfileName}" FontWeight="SemiBold" FontSize="13" Foreground="#FFFFFF"/>
+                                            <TextBlock Text="{Binding SiteUrl}" FontSize="11" Foreground="#8E8E9E"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button Content="+ Add New" Style="{StaticResource ToolBtn}" Command="{Binding ConnectionVM.AddNewProfileCommand}"/>
+                                <Button Content="Delete" Style="{StaticResource ToolBtn}" Command="{Binding ConnectionVM.DeleteProfileCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Profile Details & Credentials Form -->
+                    <Border Grid.Column="1" Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6" Padding="24">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel MaxWidth="700" HorizontalAlignment="Left">
+                                <TextBlock Text="Site Connection Settings" FontSize="18" FontWeight="SemiBold" Foreground="#FFFFFF" Margin="0,0,0,18"/>
+
+                                <!-- Profile Name -->
+                                <TextBlock Text="Profile Name:" FontSize="13" Foreground="#ABB2BF" Margin="0,0,0,6"/>
+                                <TextBox Text="{Binding ConnectionVM.SelectedProfile.ProfileName, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="#2A2A33" Foreground="#FFFFFF" BorderBrush="#3F3F4D" Padding="8" FontSize="13" Margin="0,0,0,16"/>
+
+                                <!-- SharePoint URL -->
+                                <TextBlock Text="SharePoint Web Application / Site Collection URL:" FontSize="13" Foreground="#ABB2BF" Margin="0,0,0,6"/>
+                                <TextBox Text="{Binding ConnectionVM.SelectedProfile.SiteUrl, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="#2A2A33" Foreground="#FFFFFF" BorderBrush="#3F3F4D" Padding="8" FontSize="13" Margin="0,0,0,16"/>
+
+                                <!-- Authentication Mode -->
+                                <TextBlock Text="Authentication Mode:" FontSize="13" Foreground="#ABB2BF" Margin="0,0,0,6"/>
+                                <ComboBox SelectedIndex="{Binding ConnectionVM.SelectedProfile.AuthMode, Mode=TwoWay, Converter={StaticResource EnumToIndex}}"
+                                          Background="#2A2A33" Foreground="#000000" Padding="8" FontSize="13" Margin="0,0,0,16">
+                                    <ComboBoxItem Content="Current Windows User (Integrated / NTLM / Kerberos)"/>
+                                    <ComboBoxItem Content="Specific Windows Domain Credentials"/>
+                                    <ComboBoxItem Content="Forms Based Authentication (FBA / Claims)"/>
+                                </ComboBox>
+
+                                <!-- Domain -->
+                                <TextBlock Text="Domain (Optional):" FontSize="13" Foreground="#ABB2BF" Margin="0,0,0,6"/>
+                                <TextBox Text="{Binding ConnectionVM.SelectedProfile.Domain, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="#2A2A33" Foreground="#FFFFFF" BorderBrush="#3F3F4D" Padding="8" FontSize="13" Margin="0,0,0,16"/>
+
+                                <!-- Username -->
+                                <TextBlock Text="Username:" FontSize="13" Foreground="#ABB2BF" Margin="0,0,0,6"/>
+                                <TextBox Text="{Binding ConnectionVM.SelectedProfile.Username, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="#2A2A33" Foreground="#FFFFFF" BorderBrush="#3F3F4D" Padding="8" FontSize="13" Margin="0,0,0,16"/>
+
+                                <!-- Password -->
+                                <TextBlock Text="Password:" FontSize="13" Foreground="#ABB2BF" Margin="0,0,0,6"/>
+                                <PasswordBox x:Name="TxtPassword" PasswordChanged="PasswordBox_PasswordChanged"
+                                             Background="#2A2A33" Foreground="#FFFFFF" BorderBrush="#3F3F4D" Padding="8" FontSize="13" Margin="0,0,0,16"/>
+
+                                <CheckBox Content="Remember Password (Secured with Windows DPAPI)"
+                                          IsChecked="{Binding ConnectionVM.RememberPassword}"
+                                          Foreground="#ABB2BF" Margin="0,0,0,10"/>
+
+                                <CheckBox Content="Trust server certificate without validation (self-signed internal farms only — not recommended)"
+                                          IsChecked="{Binding ConnectionVM.SelectedProfile.TrustAllCertificates}"
+                                          ToolTip="Disables HTTPS certificate checks for this profile. Credentials could be intercepted on an untrusted network."
+                                          Foreground="#E5C07B" Margin="0,0,0,24"/>
+
+                                <!-- Action Buttons -->
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="🚀 Connect" Style="{StaticResource PrimaryBtn}"
+                                            Command="{Binding ConnectionVM.ConnectCommand}"
+                                            Width="130" Height="36" Margin="0,0,12,0"/>
+                                    <Button Content="💾 Save Profile" Style="{StaticResource ToolBtn}"
+                                            Command="{Binding ConnectionVM.SaveProfileCommand}"
+                                            Width="120" Height="36" Margin="0,0,12,0"/>
+                                    <Button Content="Disconnect" Style="{StaticResource ToolBtn}"
+                                            Command="{Binding ConnectionVM.DisconnectCommand}"
+                                            Width="110" Height="36"/>
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding ConnectionVM.StatusMessage}" FontSize="13" Foreground="#61AFEF" Margin="0,16,0,0"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB: SITE EXPLORER (SharePoint Designer "Site Objects") -->
+            <TabItem Header="🌐 Site Explorer">
+                <Grid Margin="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Address bar -->
+                        <RowDefinition Height="*"/>    <!-- Navigator + content -->
+                    </Grid.RowDefinitions>
+
+                    <!-- ADDRESS / NAVIGATION BAR -->
+                    <Border Grid.Row="0" Style="{StaticResource CardBorder}" Padding="10,8" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Button Grid.Column="0" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.GoToParentCommand}"
+                                    IsEnabled="{Binding SiteExplorerVM.CanGoToParent}"
+                                    ToolTip="{Binding SiteExplorerVM.ParentWeb.Url}">
+                                <TextBlock>
+                                    <Run Text="▲ Parent Site"/>
+                                </TextBlock>
+                            </Button>
+
+                            <TextBox Grid.Column="1" Style="{StaticResource InputBox}" Margin="0,0,8,0"
+                                     Text="{Binding SiteExplorerVM.AddressUrl, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Type any site URL on this farm and press Enter to open it with the current credentials">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Enter" Command="{Binding SiteExplorerVM.GoToAddressCommand}"/>
+                                </TextBox.InputBindings>
+                            </TextBox>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button Content="➜ Open Site" Style="{StaticResource PrimaryBtn}" Command="{Binding SiteExplorerVM.GoToAddressCommand}"/>
+                                <Button Content="🌍 Open in Browser" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.OpenInBrowserCommand}"/>
+                                <Button Content="🔄 Refresh" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.RefreshCommand}" Margin="0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="230"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- LEFT: SITE OBJECTS NAVIGATOR -->
+                        <Border Grid.Column="0" Style="{StaticResource CardBorder}" Padding="10" Margin="0,0,14,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="SITE OBJECTS" Style="{StaticResource SectionTitle}" Margin="4,0,0,6"/>
+                                <TextBlock Grid.Row="1" Text="{Binding SiteExplorerVM.Details.Title}" Foreground="#E5C07B" FontWeight="SemiBold"
+                                           FontSize="13" TextTrimming="CharacterEllipsis" Margin="4,0,0,10"
+                                           ToolTip="{Binding SiteExplorerVM.Details.Url}"/>
+
+                                <ListBox Grid.Row="2" x:Name="SiteSectionsList" ItemsSource="{Binding SiteExplorerVM.Sections}"
+                                         SelectedItem="{Binding SiteExplorerVM.SelectedSection}"
+                                         PreviewMouseLeftButtonUp="SiteSectionsList_PreviewMouseLeftButtonUp"
+                                         Background="Transparent" BorderThickness="0" Foreground="#DCDCDC">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="8,7"/>
+                                            <Setter Property="Margin" Value="0,1"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="#2D2D37"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter TargetName="Bd" Property="Background" Value="#264F78"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Icon}" Width="24" FontSize="14"/>
+                                                <TextBlock Text="{Binding Title}" FontSize="13" Foreground="#ECEFF4"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+
+                        <!-- RIGHT: CONTENT AREA -->
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Filter + status -->
+                                <RowDefinition Height="*"/>    <!-- Active panel -->
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Style="{StaticResource CardBorder}" Padding="10,6" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="🔍" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Grid.Column="1" Width="220" Style="{StaticResource InputBox}"
+                                             Text="{Binding SiteExplorerVM.FilterText, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Filter the current view"/>
+                                    <CheckBox Grid.Column="2" Content="Show hidden" Foreground="#ABB2BF" VerticalAlignment="Center" Margin="12,0,0,0"
+                                              IsChecked="{Binding SiteExplorerVM.ShowHidden}"
+                                              ToolTip="Show hidden lists, content types and columns"/>
+                                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ProgressBar Width="80" Height="4" IsIndeterminate="True" Margin="0,0,10,0"
+                                                     Visibility="{Binding SiteExplorerVM.IsBusy, Converter={StaticResource BoolToVis}}"/>
+                                        <TextBlock Text="{Binding SiteExplorerVM.StatusMessage}" Foreground="#8E8E9E" FontSize="12"
+                                                   MaxWidth="520" TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding SiteExplorerVM.StatusMessage}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- 0: SITE SUMMARY -->
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                          Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=0}">
+                                <StackPanel>
+                                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,14">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="170"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.ColumnSpan="2" Text="SITE INFORMATION" Style="{StaticResource SectionTitle}"/>
+
+                                            <TextBlock Grid.Row="1" Text="Title" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource InputBox}" Margin="0,4" MaxWidth="600" HorizontalAlignment="Stretch"
+                                                     Text="{Binding SiteExplorerVM.EditTitle, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                            <TextBlock Grid.Row="2" Text="Description" Style="{StaticResource FieldLabel}" VerticalAlignment="Top"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource InputBox}" Margin="0,4" MaxWidth="600" HorizontalAlignment="Stretch"
+                                                     Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalContentAlignment="Top"
+                                                     Text="{Binding SiteExplorerVM.EditDescription, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="0,4,0,8">
+                                                <Button Content="💾 Save Title &amp; Description" Style="{StaticResource PrimaryBtn}"
+                                                        Command="{Binding SiteExplorerVM.SaveSiteInfoCommand}"/>
+                                                <Button Content="🔑 Check My Permissions" Style="{StaticResource ToolBtn}"
+                                                        Command="{Binding SiteExplorerVM.CheckPermissionsCommand}"
+                                                        ToolTip="What the connected account may do in Master Page Gallery, Style Library and Pages (changes nothing)"/>
+                                                <Button Content="🩺 Diagnose Write Access" Style="{StaticResource ToolBtn}"
+                                                        Command="{Binding SiteExplorerVM.DiagnoseWriteAccessCommand}"
+                                                        ToolTip="Shows which check-out / upload requests reach SharePoint from this address and which are blocked on the way (changes nothing)"/>
+                                            </StackPanel>
+
+                                            <TextBlock Grid.Row="4" Text="Web Address" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.Url, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="5" Text="Server Relative URL" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.ServerRelativeUrl, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="6" Text="Site Template" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="6" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.TemplateDisplay, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="7" Text="Language" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="7" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.LanguageDisplay, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="8" Text="UI Version" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="8" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.UIVersion, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="9" Text="Created / Last Modified" Style="{StaticResource FieldLabel}"/>
+                                            <TextBlock Grid.Row="9" Grid.Column="1" Foreground="#ECEFF4" FontSize="13" VerticalAlignment="Center">
+                                                <Run Text="{Binding SiteExplorerVM.Details.Created, StringFormat='{}{0:yyyy-MM-dd HH:mm}', Mode=OneWay}"/>
+                                                <Run Text="  /  " Foreground="#5C6370"/>
+                                                <Run Text="{Binding SiteExplorerVM.Details.LastItemModifiedDate, StringFormat='{}{0:yyyy-MM-dd HH:mm}', Mode=OneWay}"/>
+                                            </TextBlock>
+
+                                            <TextBlock Grid.Row="10" Text="Permissions" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="10" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.PermissionsDisplay, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="11" Text="Parent Site" Style="{StaticResource FieldLabel}"/>
+                                            <StackPanel Grid.Row="11" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="(root site of the site collection)" Foreground="#5C6370" FontSize="13"
+                                                           Visibility="{Binding SiteExplorerVM.ParentWeb, Converter={StaticResource NullToVis}}"/>
+                                                <Button Style="{StaticResource ToolBtn}" Padding="8,3" Command="{Binding SiteExplorerVM.GoToParentCommand}"
+                                                        Visibility="{Binding SiteExplorerVM.ParentWeb, Converter={StaticResource NotNullToVis}}">
+                                                    <TextBlock>
+                                                        <Run Text="▲"/>
+                                                        <Run Text="{Binding SiteExplorerVM.ParentWeb.Title, Mode=OneWay}"/>
+                                                        <Run Text="{Binding SiteExplorerVM.ParentWeb.ServerRelativeUrl, Mode=OneWay}" Foreground="#8E8E9E"/>
+                                                    </TextBlock>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Style="{StaticResource CardBorder}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="170"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.ColumnSpan="2" Text="MASTER PAGES &amp; BRANDING" Style="{StaticResource SectionTitle}"/>
+
+                                            <TextBlock Grid.Row="1" Text="Site Master Page" Style="{StaticResource FieldLabel}" ToolTip="CustomMasterUrl — used by publishing and content pages"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.CustomMasterUrl, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="2" Text="System Master Page" Style="{StaticResource FieldLabel}" ToolTip="MasterUrl — used by settings, list views and forms"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.MasterUrl, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="3" Text="Alternate CSS" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.AlternateCssUrl, Mode=OneWay}"/>
+
+                                            <TextBlock Grid.Row="4" Text="Site Logo" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource FieldValue}" Text="{Binding SiteExplorerVM.Details.SiteLogoUrl, Mode=OneWay}"/>
+
+                                            <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+                                                <Button Content="⚡ Manage Master Pages..." Style="{StaticResource ToolBtn}"
+                                                        Command="{Binding GoToTabCommand}" CommandParameter="2"/>
+                                                <Button Content="🎨 Style Library..." Style="{StaticResource ToolBtn}"
+                                                        Command="{Binding GoToTabCommand}" CommandParameter="3"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </ScrollViewer>
+
+                            <!-- 1: LISTS AND LIBRARIES -->
+                            <Grid Grid.Row="1" Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=1}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <WrapPanel Margin="0,0,0,10">
+                                    <Button Content="📂 Open" Style="{StaticResource PrimaryBtn}" Command="{Binding SiteExplorerVM.OpenListCommand}"
+                                            ToolTip="Libraries open in All Files; lists show their items"/>
+                                    <Button Content="🌍 Open in Browser" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.OpenInBrowserCommand}"
+                                            CommandParameter="{Binding SiteExplorerVM.SelectedList.DefaultViewUrl}"/>
+                                </WrapPanel>
+                                <DataGrid x:Name="ExplorerListsGrid" Grid.Row="1" ItemsSource="{Binding SiteExplorerVM.ListsView}" SelectedItem="{Binding SiteExplorerVM.SelectedList}"
+                                          IsReadOnly="True" SelectionMode="Single">
+                                    <DataGrid.GroupStyle>
+                                        <StaticResource ResourceKey="ExplorerGroupStyle"/>
+                                    </DataGrid.GroupStyle>
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                            <EventSetter Event="MouseDoubleClick" Handler="SiteListRow_MouseDoubleClick"/>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="" Binding="{Binding Icon}" Width="35"/>
+                                        <DataGridTextColumn Header="Name" Binding="{Binding Title}" Width="260" FontWeight="SemiBold"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding TemplateName}" Width="170"/>
+                                        <DataGridTextColumn Header="Items" Binding="{Binding ItemCount}" Width="80"/>
+                                        <DataGridTextColumn Header="Last Modified" Binding="{Binding LastItemModifiedDate, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140"/>
+                                        <DataGridCheckBoxColumn Header="Hidden" Binding="{Binding Hidden, Mode=OneWay}" Width="65"/>
+                                        <DataGridTextColumn Header="Location" Binding="{Binding RootFolderUrl}" Width="*" Foreground="#8E8E9E"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+
+                            <!-- 8: LIST ITEMS (drill-down from Lists and Libraries) -->
+                            <Grid Grid.Row="1" Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=8}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <WrapPanel Margin="0,0,0,10">
+                                    <Button Content="◀ Lists and Libraries" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.CloseListItemsCommand}"/>
+                                    <Button Content="🌍 Open in Browser" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.OpenInBrowserCommand}"
+                                            CommandParameter="{Binding SiteExplorerVM.CurrentList.DefaultViewUrl}"/>
+                                    <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" FontSize="14">
+                                        <Run Text="📋"/>
+                                        <Run Text="{Binding SiteExplorerVM.CurrentList.Title, Mode=OneWay}" Foreground="#E5C07B" FontWeight="SemiBold"/>
+                                        <Run Text="{Binding SiteExplorerVM.CurrentList.TemplateName, Mode=OneWay}" Foreground="#8E8E9E" FontSize="12"/>
+                                    </TextBlock>
+                                </WrapPanel>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding SiteExplorerVM.ListItems}" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="" Binding="{Binding Icon}" Width="35"/>
+                                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                                        <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="300" FontWeight="SemiBold"/>
+                                        <DataGridTextColumn Header="Modified" Binding="{Binding Modified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140"/>
+                                        <DataGridTextColumn Header="Created" Binding="{Binding Created, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140"/>
+                                        <DataGridTextColumn Header="Path" Binding="{Binding FileRef}" Width="*" Foreground="#8E8E9E"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+
+                            <!-- 2: SUBSITES -->
+                            <Grid Grid.Row="1" Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=2}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <WrapPanel Margin="0,0,0,10">
+                                    <Button Content="➜ Open Subsite" Style="{StaticResource PrimaryBtn}" Command="{Binding SiteExplorerVM.OpenSubsiteCommand}"
+                                            ToolTip="Connect to the selected subsite (double-click a row does the same)"/>
+                                    <Button Content="🌍 Open in Browser" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.OpenInBrowserCommand}"
+                                            CommandParameter="{Binding SiteExplorerVM.SelectedSubsite.Url}"/>
+                                </WrapPanel>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding SiteExplorerVM.SubsitesView}" SelectedItem="{Binding SiteExplorerVM.SelectedSubsite}"
+                                          IsReadOnly="True" SelectionMode="Single">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                            <EventSetter Event="MouseDoubleClick" Handler="SubsiteRow_MouseDoubleClick"/>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="" Binding="{Binding Source='🌐'}" Width="35"/>
+                                        <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="240" FontWeight="SemiBold"/>
+                                        <DataGridTextColumn Header="URL" Binding="{Binding ServerRelativeUrl}" Width="280"/>
+                                        <DataGridTextColumn Header="Template" Binding="{Binding TemplateDisplay}" Width="130"/>
+                                        <DataGridTextColumn Header="Created" Binding="{Binding Created, StringFormat='{}{0:yyyy-MM-dd}'}" Width="100"/>
+                                        <DataGridTextColumn Header="Last Modified" Binding="{Binding LastItemModifiedDate, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140"/>
+                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" Foreground="#8E8E9E"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+
+                            <!-- 3: ALL FILES -->
+                            <Grid Grid.Row="1" Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=3}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <WrapPanel Margin="0,0,0,8">
+                                    <Button Content="📝 Open" Style="{StaticResource PrimaryBtn}" Command="{Binding SiteExplorerVM.OpenFileItemCommand}"/>
+                                    <Button Content="⬇️ Download..." Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.DownloadFilesCommand}"/>
+                                    <Button Content="⬆️ Upload..." Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.UploadFilesCommand}"/>
+                                    <Button Content="📁 New Folder..." Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.NewFolderCommand}"/>
+                                    <Button Content="🗑️ Delete" Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.RecycleFilesCommand}"
+                                            ToolTip="Move selected items to the site Recycle Bin"/>
+                                    <Button Content="🚚 Add to Deployment" Style="{StaticResource ToolBtn}" Command="{Binding AddToDeploymentCommand}" CommandParameter="explorer" ToolTip="Queue the ticked files/folders for deployment to Production"/>
+                                </WrapPanel>
+                                <Border Grid.Row="1" Style="{StaticResource CardBorder}" Padding="6,4" Margin="0,0,0,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="▲" ToolTip="Up one level" Width="28" Height="26" Padding="0" Margin="0,0,4,0"
+                                                Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.FolderUpCommand}"
+                                                IsEnabled="{Binding SiteExplorerVM.CanGoUpFolder}"/>
+                                        <Button Content="🏠" ToolTip="Site root" Width="28" Height="26" Padding="0" Margin="0,0,8,0"
+                                                Style="{StaticResource ToolBtn}" Command="{Binding SiteExplorerVM.FolderHomeCommand}"/>
+                                        <TextBlock Text="{Binding SiteExplorerVM.FilesFolderUrl}" Foreground="#61AFEF" FontSize="12"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Border>
+                                <DataGrid Grid.Row="2" ItemsSource="{Binding SiteExplorerVM.FilesView}" SelectedItem="{Binding SiteExplorerVM.SelectedFile}" IsReadOnly="True">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                            <EventSetter Event="MouseDoubleClick" Handler="SiteFileRow_MouseDoubleClick"/>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Width="45">
+                                            <DataGridTemplateColumn.Header>
+                                                <CheckBox Checked="SiteFilesSelectAll_Checked" Unchecked="SiteFilesSelectAll_Unchecked"/>
+                                            </DataGridTemplateColumn.Header>
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="" Binding="{Binding IconGlyph}" Width="35"/>
+                                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="260" FontWeight="SemiBold"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding FileExtension}" Width="70"/>
+                                        <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="70"/>
+                                        <DataGridTemplateColumn Header="Check-Out Status" Width="160">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding CheckOutStatusDisplay}"
+                                                               Foreground="{Binding CheckOutStatusDisplay, Converter={StaticResource StatusBrush}}"
+                                                               FontWeight="Medium" VerticalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Size" Binding="{Binding FormattedSize}" Width="80"/>
+                                        <DataGridTextColumn Header="Modified By" Binding="{Binding ModifiedBy}" Width="140"/>
+                                        <DataGridTextColumn Header="Last Modified" Binding="{Binding TimeLastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="140"/>
+                                        <DataGridTextColumn Header="Path" Binding="{Binding ServerRelativeUrl}" Width="*" Foreground="#8E8E9E"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+
+                            <!-- 4: CONTENT TYPES -->
+                            <DataGrid x:Name="ExplorerContentTypesGrid" Grid.Row="1" ItemsSource="{Binding SiteExplorerVM.ContentTypesView}" IsReadOnly="True"
+                                     
+                                      Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=4}">
+                                <DataGrid.GroupStyle>
+                                    <StaticResource ResourceKey="ExplorerGroupStyle"/>
+                                </DataGrid.GroupStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="240" FontWeight="SemiBold"/>
+                                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="300" Foreground="#8E8E9E"/>
+                                    <DataGridCheckBoxColumn Header="Hidden" Binding="{Binding Hidden, Mode=OneWay}" Width="65"/>
+                                    <DataGridCheckBoxColumn Header="Read Only" Binding="{Binding ReadOnly, Mode=OneWay}" Width="80"/>
+                                    <DataGridCheckBoxColumn Header="Sealed" Binding="{Binding Sealed, Mode=OneWay}" Width="65"/>
+                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" Foreground="#8E8E9E"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- 5: SITE COLUMNS -->
+                            <DataGrid x:Name="ExplorerFieldsGrid" Grid.Row="1" ItemsSource="{Binding SiteExplorerVM.FieldsView}" IsReadOnly="True"
+                                     
+                                      Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=5}">
+                                <DataGrid.GroupStyle>
+                                    <StaticResource ResourceKey="ExplorerGroupStyle"/>
+                                </DataGrid.GroupStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Display Name" Binding="{Binding Title}" Width="220" FontWeight="SemiBold"/>
+                                    <DataGridTextColumn Header="Internal Name" Binding="{Binding InternalName}" Width="200"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding TypeAsString}" Width="130"/>
+                                    <DataGridCheckBoxColumn Header="Required" Binding="{Binding Required, Mode=OneWay}" Width="75"/>
+                                    <DataGridCheckBoxColumn Header="Hidden" Binding="{Binding Hidden, Mode=OneWay}" Width="65"/>
+                                    <DataGridCheckBoxColumn Header="Read Only" Binding="{Binding ReadOnlyField, Mode=OneWay}" Width="80"/>
+                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" Foreground="#8E8E9E"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- 6: SITE GROUPS -->
+                            <Grid Grid.Row="1" Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=6}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <DataGrid ItemsSource="{Binding SiteExplorerVM.Groups}" SelectedItem="{Binding SiteExplorerVM.SelectedGroup}"
+                                          IsReadOnly="True" SelectionMode="Single" Margin="0,0,10,0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="" Binding="{Binding Source='👥'}" Width="35"/>
+                                        <DataGridTextColumn Header="Group" Binding="{Binding Title}" Width="220" FontWeight="SemiBold"/>
+                                        <DataGridTextColumn Header="Owner" Binding="{Binding OwnerTitle}" Width="160"/>
+                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" Foreground="#8E8E9E"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Grid Grid.Column="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Margin="2,0,0,6" FontSize="12" Foreground="#8E8E9E">
+                                        <Run Text="MEMBERS OF"/>
+                                        <Run Text="{Binding SiteExplorerVM.SelectedGroup.Title, Mode=OneWay}" Foreground="#E5C07B" FontWeight="SemiBold"/>
+                                    </TextBlock>
+                                    <DataGrid Grid.Row="1" ItemsSource="{Binding SiteExplorerVM.GroupMembers}" IsReadOnly="True">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Title}" Width="180" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="Login" Binding="{Binding LoginName}" Width="200"/>
+                                            <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="*" Foreground="#8E8E9E"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </Grid>
+
+                            <!-- 7: SITE PERMISSIONS -->
+                            <Grid Grid.Row="1" Visibility="{Binding SiteExplorerVM.ActiveView, Converter={StaticResource IntEqualsToVis}, ConverterParameter=7}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Margin="2,0,0,8" FontSize="13">
+                                    <Run Text="🔐" />
+                                    <Run Text="{Binding SiteExplorerVM.Details.PermissionsDisplay, Mode=OneWay}" Foreground="#E5C07B" FontWeight="SemiBold"/>
+                                </TextBlock>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding SiteExplorerVM.RoleAssignments}" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="" Binding="{Binding Icon}" Width="35"/>
+                                        <DataGridTextColumn Header="Name" Binding="{Binding PrincipalName}" Width="240" FontWeight="SemiBold"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding PrincipalTypeDisplay}" Width="130"/>
+                                        <DataGridTextColumn Header="Permission Levels" Binding="{Binding PermissionLevels}" Width="260"/>
+                                        <DataGridTextColumn Header="Login" Binding="{Binding LoginName}" Width="*" Foreground="#8E8E9E"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: MASTER PAGE GALLERY -->
+            <TabItem Header="⚡ Master Page Gallery (_catalogs/masterpage)">
+                <Grid Margin="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Action Toolbar -->
+                        <RowDefinition Height="*"/>    <!-- DataGrid -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
+                    <Border Grid.Row="0" Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,14">
+                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Lifecycle Operations -->
+                            <Button Content="🔓 Check Out" Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.CheckOutCommand}"/>
+                            <Button Content="🔒 Check In..." Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.CheckInCommand}"/>
+                            <Button Content="📢 Publish Major" Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.PublishCommand}"/>
+                            <Button Content="↩️ Discard Check-Out" Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.UndoCheckOutCommand}"/>
+                            <Button Content="✅ Approve" Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.ApproveCommand}"/>
+                            <Button Content="⛔ Reject" Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.DenyCommand}"/>
+
+                            <Rectangle Width="1" Height="24" Fill="#3F3F4D" Margin="6,0,12,0"/>
+
+                            <!-- Master page assignment (applies to the current web) -->
+                            <Button Content="🏁 Set as Master..." Style="{StaticResource ToolBtn}"
+                                    ToolTip="Assign the selected .master file to the current site"
+                                    Click="BtnSetMaster_Click">
+                                <Button.ContextMenu>
+                                    <ContextMenu Background="#202026" Foreground="#ECEFF4">
+                                        <MenuItem Header="Set as Site Master Page (content &amp; publishing pages)" Command="{Binding MasterPageVM.SetAsSiteMasterCommand}"/>
+                                        <MenuItem Header="Set as System Master Page (settings, lists &amp; forms)" Command="{Binding MasterPageVM.SetAsSystemMasterCommand}"/>
+                                        <MenuItem Header="Set as Both" Command="{Binding MasterPageVM.SetAsBothMastersCommand}"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+
+                            <Rectangle Width="1" Height="24" Fill="#3F3F4D" Margin="6,0,12,0"/>
+
+                            <!-- Import / Export -->
+                            <Button Content="⬇️ Export Selected..." Style="{StaticResource PrimaryBtn}" Command="{Binding MasterPageVM.ExportSelectedCommand}"/>
+                            <Button Content="⬆️ Import Files..." Style="{StaticResource PrimaryBtn}" Command="{Binding MasterPageVM.ImportFilesCommand}"/>
+                            <Button Content="📝 Open in Designer Editor" Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.OpenInEditorCommand}"/>
+                            <Button Content="🚚 Add to Deployment" Style="{StaticResource ToolBtn}" Command="{Binding AddToDeploymentCommand}" CommandParameter="masterpages" ToolTip="Queue the ticked files for deployment to Production"/>
+
+                            <Rectangle Width="1" Height="24" Fill="#3F3F4D" Margin="6,0,12,0"/>
+
+                            <Button Content="🔄 Refresh" Style="{StaticResource ToolBtn}" Command="{Binding MasterPageVM.LoadItemsCommand}"/>
+
+                            <!-- Search Filter -->
+                            <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
+                                <TextBlock Text="🔍" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBox Width="200" Padding="6,4" Background="#1A1A20" Foreground="#FFFFFF" BorderBrush="#3F3F4D"
+                                         Text="{Binding MasterPageVM.SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </Border>
+
+                    <!-- Master Pages DataGrid -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding MasterPageVM.DisplayedItems}"
+                              SelectedItem="{Binding MasterPageVM.SelectedItem}"
+                              IsReadOnly="True">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <EventSetter Event="MouseDoubleClick" Handler="MasterPageRow_MouseDoubleClick"/>
+                                <Setter Property="ContextMenu">
+                                    <Setter.Value>
+                                        <ContextMenu Background="#202026" Foreground="#ECEFF4">
+                                            <MenuItem Header="📝 Open in Designer Editor" Command="{Binding DataContext.MasterPageVM.OpenInEditorCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <MenuItem Header="🔓 Check Out" Command="{Binding DataContext.MasterPageVM.CheckOutCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <MenuItem Header="🔒 Check In..." Command="{Binding DataContext.MasterPageVM.CheckInCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <MenuItem Header="📢 Publish Major Version" Command="{Binding DataContext.MasterPageVM.PublishCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                            <MenuItem Header="⬇️ Export File..." Command="{Binding DataContext.MasterPageVM.ExportSelectedCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                        </ContextMenu>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#264F78"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <!-- Selection Checkbox -->
+                            <DataGridTemplateColumn Width="45">
+                                <DataGridTemplateColumn.Header>
+                                    <CheckBox Checked="MasterPageSelectAll_Checked" Unchecked="MasterPageSelectAll_Unchecked"/>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="" Binding="{Binding IconGlyph}" Width="35" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="File Name" Binding="{Binding Name}" Width="260" IsReadOnly="True" FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding ContentType}" Width="160" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="80" IsReadOnly="True"/>
+
+                            <!-- Checkout Status with dynamic color -->
+                            <DataGridTemplateColumn Header="Check-Out Status" Width="180">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding CheckOutStatusDisplay}"
+                                                   Foreground="{Binding CheckOutStatusDisplay, Converter={StaticResource StatusBrush}}"
+                                                   FontWeight="Medium" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- Moderation / Approval Status -->
+                            <DataGridTemplateColumn Header="Approval Status" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding ApprovalStatusDisplay}"
+                                                   Foreground="{Binding ApprovalStatusDisplay, Converter={StaticResource StatusBrush}}"
+                                                   FontWeight="Medium" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="Size" Binding="{Binding FormattedSize}" Width="90" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Last Modified" Binding="{Binding TimeLastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="150" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Server Path" Binding="{Binding ServerRelativeUrl}" Width="*" IsReadOnly="True" Foreground="#8E8E9E"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 3: STYLE LIBRARY EXPLORER -->
+            <TabItem Header="🎨 Style Library Explorer">
+                <Grid Margin="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Toolbar -->
+                        <RowDefinition Height="*"/>    <!-- Split View (Folders Tree & Files Grid) -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Toolbar -->
+                    <Border Grid.Row="0" Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,14">
+                        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <!-- Folder Operations -->
+                            <Button Content="📁 New Folder..." Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.CreateNewFolderCommand}"/>
+                            <Button Content="📦 Export Folder Tree..." Style="{StaticResource PrimaryBtn}" Command="{Binding StyleLibraryVM.ExportFolderRecursiveCommand}"/>
+                            <Button Content="📂 Import Folder Tree..." Style="{StaticResource PrimaryBtn}" Command="{Binding StyleLibraryVM.ImportFolderRecursiveCommand}"/>
+
+                            <Rectangle Width="1" Height="24" Fill="#3F3F4D" Margin="6,0,12,0"/>
+
+                            <!-- File Operations -->
+                            <Button Content="🔓 Check Out" Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.CheckOutCommand}"/>
+                            <Button Content="🔒 Check In..." Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.CheckInCommand}"/>
+                            <Button Content="📢 Publish Major" Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.PublishCommand}"/>
+                            <Button Content="↩️ Discard Check-Out" Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.UndoCheckOutCommand}"/>
+
+                            <Rectangle Width="1" Height="24" Fill="#3F3F4D" Margin="6,0,12,0"/>
+
+                            <Button Content="⬇️ Export Files..." Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.ExportSelectedFilesCommand}"/>
+                            <Button Content="⬆️ Import Files..." Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.ImportFilesCommand}"/>
+                            <Button Content="📝 Open in Designer Editor" Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.OpenInEditorCommand}"/>
+                            <Button Content="🚚 Add to Deployment" Style="{StaticResource ToolBtn}" Command="{Binding AddToDeploymentCommand}" CommandParameter="style" ToolTip="Queue the ticked files/folders for deployment to Production"/>
+                            <Button Content="🔄 Refresh" Style="{StaticResource ToolBtn}" Command="{Binding StyleLibraryVM.LoadRootCommand}"/>
+
+                            <!-- Search Filter -->
+                            <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
+                                <TextBlock Text="🔍" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBox Width="180" Padding="6,4" Background="#1A1A20" Foreground="#FFFFFF" BorderBrush="#3F3F4D"
+                                         Text="{Binding StyleLibraryVM.SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </Border>
+
+                    <!-- Split View -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Folders TreeView -->
+                        <Border Grid.Column="0" Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6" Margin="0,0,14,0" Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="FOLDER HIERARCHY" FontSize="11" FontWeight="Bold" Foreground="#8E8E9E" Margin="4,0,0,8"/>
+
+                                <TreeView Grid.Row="1" ItemsSource="{Binding StyleLibraryVM.FolderRoots}"
+                                          Background="Transparent" BorderThickness="0"
+                                          SelectedItemChanged="FolderTree_SelectedItemChanged">
+                                    <TreeView.ItemTemplate>
+                                        <HierarchicalDataTemplate ItemsSource="{Binding SubFolders}">
+                                            <StackPanel Orientation="Horizontal" Margin="2">
+                                                <TextBlock Text="📁 " FontSize="14"/>
+                                                <TextBlock Text="{Binding Name}" Foreground="#ECEFF4" FontSize="13"/>
+                                            </StackPanel>
+                                        </HierarchicalDataTemplate>
+                                    </TreeView.ItemTemplate>
+                                </TreeView>
+                            </Grid>
+                        </Border>
+
+                        <!-- Right Pane: SharePoint Designer Breadcrumbs Bar + Items Grid -->
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- SharePoint Designer-style Navigation & Breadcrumb Bar -->
+                            <Border Grid.Row="0" Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="5" Padding="8,5" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/> <!-- Back / Forward / Up -->
+                                        <ColumnDefinition Width="*"/>    <!-- Interactive Breadcrumbs -->
+                                        <ColumnDefinition Width="Auto"/> <!-- Status / Items count -->
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Navigation Action Buttons (Back, Forward, Up) -->
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <Button Content="◀" ToolTip="Back" Width="28" Height="26" Margin="0,0,3,0"
+                                                Style="{StaticResource ToolBtn}" Padding="0"
+                                                Command="{Binding StyleLibraryVM.NavigateBackCommand}"
+                                                IsEnabled="{Binding StyleLibraryVM.CanGoBack}"/>
+                                        <Button Content="▶" ToolTip="Forward" Width="28" Height="26" Margin="0,0,3,0"
+                                                Style="{StaticResource ToolBtn}" Padding="0"
+                                                Command="{Binding StyleLibraryVM.NavigateForwardCommand}"
+                                                IsEnabled="{Binding StyleLibraryVM.CanGoForward}"/>
+                                        <Button Content="▲" ToolTip="Up one level" Width="28" Height="26" Margin="0,0,6,0"
+                                                Style="{StaticResource ToolBtn}" Padding="0"
+                                                Command="{Binding StyleLibraryVM.NavigateUpCommand}"
+                                                IsEnabled="{Binding StyleLibraryVM.CanGoUp}"/>
+                                        <Rectangle Width="1" Height="18" Fill="#3F3F4D" Margin="2,0,4,0"/>
+                                    </StackPanel>
+
+                                    <!-- Breadcrumb Trail -->
+                                    <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                        <ItemsControl ItemsSource="{Binding StyleLibraryVM.Breadcrumbs}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Button Command="{Binding DataContext.StyleLibraryVM.NavigateToBreadcrumbCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                                CommandParameter="{Binding}"
+                                                                Background="Transparent" BorderThickness="0"
+                                                                Cursor="Hand" Padding="4,2" Margin="0,0,1,0">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button">
+                                                                    <Setter Property="Template">
+                                                                        <Setter.Value>
+                                                                            <ControlTemplate TargetType="Button">
+                                                                                <Border x:Name="bd" Background="Transparent" CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                                                    <ContentPresenter/>
+                                                                                </Border>
+                                                                                <ControlTemplate.Triggers>
+                                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                                        <Setter TargetName="bd" Property="Background" Value="#2D2D37"/>
+                                                                                    </Trigger>
+                                                                                </ControlTemplate.Triggers>
+                                                                            </ControlTemplate>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </Style>
+                                                            </Button.Style>
+                                                            <TextBlock Text="{Binding Name}" Foreground="#61AFEF" FontSize="12" FontWeight="Medium"/>
+                                                        </Button>
+                                                        <TextBlock Text="▶" Foreground="#5C6370" FontSize="10" VerticalAlignment="Center" Margin="2,0,4,0"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+
+                                    <!-- Folder Items Count -->
+                                    <TextBlock Grid.Column="2" Text="{Binding StyleLibraryVM.StatusMessage}"
+                                               Foreground="#8E8E9E" FontSize="11" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Files & Folders Grid in Selected Folder -->
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding StyleLibraryVM.DisplayedFiles}"
+                                      SelectedItem="{Binding StyleLibraryVM.SelectedFile}"
+                                      IsReadOnly="True">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <EventSetter Event="MouseDoubleClick" Handler="StyleLibraryRow_MouseDoubleClick"/>
+                                        <Setter Property="ContextMenu">
+                                            <Setter.Value>
+                                                <ContextMenu Background="#202026" Foreground="#ECEFF4">
+                                                    <MenuItem Header="📝 Open in Designer Editor" Command="{Binding DataContext.StyleLibraryVM.OpenInEditorCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                    <MenuItem Header="🔓 Check Out" Command="{Binding DataContext.StyleLibraryVM.CheckOutCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                    <MenuItem Header="🔒 Check In..." Command="{Binding DataContext.StyleLibraryVM.CheckInCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                    <MenuItem Header="📢 Publish Major Version" Command="{Binding DataContext.StyleLibraryVM.PublishCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                    <MenuItem Header="⬇️ Export File..." Command="{Binding DataContext.StyleLibraryVM.ExportSelectedFilesCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                                                </ContextMenu>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#264F78"/>
+                                                <Setter Property="Foreground" Value="#FFFFFF"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="45">
+                                        <DataGridTemplateColumn.Header>
+                                            <CheckBox Checked="StyleLibrarySelectAll_Checked" Unchecked="StyleLibrarySelectAll_Unchecked"/>
+                                        </DataGridTemplateColumn.Header>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTextColumn Header="" Binding="{Binding IconGlyph}" Width="35" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="250" IsReadOnly="True" FontWeight="SemiBold"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding FileExtension}" Width="70" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="70" IsReadOnly="True"/>
+
+                                    <DataGridTemplateColumn Header="Check-Out Status" Width="170">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding CheckOutStatusDisplay}"
+                                                           Foreground="{Binding CheckOutStatusDisplay, Converter={StaticResource StatusBrush}}"
+                                                           FontWeight="Medium" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTextColumn Header="Size" Binding="{Binding FormattedSize}" Width="90" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Last Modified" Binding="{Binding TimeLastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="150" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Path" Binding="{Binding ServerRelativeUrl}" Width="*" IsReadOnly="True" Foreground="#8E8E9E"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4: SHAREPOINT DESIGNER-GRADE CODE & SPLIT EDITOR -->
+            <TabItem Header="🛠️ SharePoint Designer Editor">
+                <Grid Margin="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Multi-Document Tabs Bar -->
+                        <RowDefinition Height="Auto"/> <!-- Designer Toolbar -->
+                        <RowDefinition Height="Auto"/> <!-- Find & Replace Collapsible Bar -->
+                        <RowDefinition Height="*"/>    <!-- Workspace (Toolbox + Code/Split Editor) -->
+                        <RowDefinition Height="Auto"/> <!-- Document Status Footer -->
+                    </Grid.RowDefinitions>
+
+                    <!-- MULTI-DOCUMENT TAB BAR -->
+                    <Border Grid.Row="0" Background="#141418" BorderBrush="#2C2C36" BorderThickness="1,1,1,0" CornerRadius="6,6,0,0" Padding="4,4,4,0">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding CodeViewerVM.OpenDocuments}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,0,4,0" CornerRadius="4,4,0,0" BorderThickness="1,1,1,0"
+                                                Padding="12,6" Cursor="Hand"
+                                                MouseLeftButtonDown="DocumentTab_MouseLeftButtonDown">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#1E1E26"/>
+                                                    <Setter Property="BorderBrush" Value="#2E2E3C"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsDirty}" Value="True">
+                                                            <Setter Property="Background" Value="#252230"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding TabHeader}" FontWeight="SemiBold" FontSize="12" Foreground="#ECEFF4" Margin="0,0,8,0"/>
+                                                <Button Content="✕" Width="18" Height="18" FontSize="10" Padding="0" Background="Transparent" Foreground="#8E8E9E"
+                                                        BorderThickness="0" Cursor="Hand" Click="BtnCloseTab_Click" Tag="{Binding}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- DESIGNER TOOLBAR -->
+                    <Border Grid.Row="1" Background="#202026" BorderBrush="#33333F" BorderThickness="1,0,1,1" Padding="10,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Document & Lifecycle Actions -->
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="💾 Save (Ctrl+S)" Style="{StaticResource PrimaryBtn}" Command="{Binding CodeViewerVM.SaveActiveDocumentCommand}"/>
+                                <Button Content="🔒 Check In..." Style="{StaticResource ToolBtn}" Command="{Binding CodeViewerVM.CheckInActiveDocumentCommand}"/>
+                                <Button Content="📢 Publish Major" Style="{StaticResource ToolBtn}" Command="{Binding CodeViewerVM.PublishActiveDocumentCommand}"/>
+                                <Button Content="↩️ Discard Checkout" Style="{StaticResource ToolBtn}" Command="{Binding CodeViewerVM.UndoCheckOutActiveDocumentCommand}"/>
+
+                                <Rectangle Width="1" Height="22" Fill="#3F3F4D" Margin="4,0,10,0"/>
+
+                                <CheckBox Content="Auto Check-Out" IsChecked="{Binding CodeViewerVM.AutoCheckOut}" Foreground="#ABB2BF" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <CheckBox Content="Auto Publish on Save" IsChecked="{Binding CodeViewerVM.AutoPublish}" Foreground="#ABB2BF" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Status message -->
+                            <TextBlock Grid.Column="1" Text="{Binding CodeViewerVM.StatusMessage}"
+                                       Foreground="#61AFEF" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                            <!-- View Mode & Toolbox Toggles -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="🔍 Find / Replace" Style="{StaticResource ToolBtn}" Command="{Binding CodeViewerVM.ToggleFindReplaceCommand}"/>
+
+                                <Border Background="#181820" CornerRadius="4" BorderBrush="#33333F" BorderThickness="1" Margin="6,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Content="Code" GroupName="ViewMode" Margin="6,3" Foreground="#ECEFF4" IsChecked="True"
+                                                     Command="{Binding CodeViewerVM.SetViewModeCommand}" CommandParameter="0"/>
+                                        <RadioButton Content="Split" GroupName="ViewMode" Margin="6,3" Foreground="#ECEFF4"
+                                                     Command="{Binding CodeViewerVM.SetViewModeCommand}" CommandParameter="1"/>
+                                        <RadioButton Content="Preview" GroupName="ViewMode" Margin="6,3" Foreground="#ECEFF4"
+                                                     Command="{Binding CodeViewerVM.SetViewModeCommand}" CommandParameter="2"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- FIND & REPLACE COLLAPSIBLE BAR -->
+                    <Border Grid.Row="2" Background="#252530" BorderBrush="#3E4451" BorderThickness="1,0,1,1" Padding="12,8"
+                            Visibility="{Binding CodeViewerVM.IsFindReplaceVisible, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Find:" Foreground="#ABB2BF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox Width="180" Padding="4" Background="#1E1E24" Foreground="#FFFFFF" BorderBrush="#3E4451"
+                                     Text="{Binding CodeViewerVM.FindText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0"/>
+
+                            <TextBlock Text="Replace:" Foreground="#ABB2BF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox Width="180" Padding="4" Background="#1E1E24" Foreground="#FFFFFF" BorderBrush="#3E4451"
+                                     Text="{Binding CodeViewerVM.ReplaceText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,12,0"/>
+
+                            <CheckBox Content="Match Case" IsChecked="{Binding CodeViewerVM.MatchCase}" Foreground="#ABB2BF" VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                            <Button Content="Find Next" Style="{StaticResource ToolBtn}" Click="BtnFindNext_Click"/>
+                            <Button Content="Replace" Style="{StaticResource ToolBtn}" Click="BtnReplace_Click"/>
+                            <Button Content="Replace All" Style="{StaticResource ToolBtn}" Click="BtnReplaceAll_Click"/>
+                            <Button Content="✕" Width="26" Height="26" Padding="0" Style="{StaticResource ToolBtn}" Command="{Binding CodeViewerVM.ToggleFindReplaceCommand}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- MAIN WORKSPACE -->
+                    <Grid Grid.Row="3" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280"/> <!-- Left: SharePoint Toolbox -->
+                            <ColumnDefinition Width="*"/>   <!-- Right: Code Editor & Preview -->
+                        </Grid.ColumnDefinitions>
+
+                        <!-- LEFT: SHAREPOINT DESIGNER TOOLBOX -->
+                        <Border Grid.Column="0" Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6" Margin="0,0,10,0" Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Margin="0,0,0,10">
+                                    <TextBlock Text="🧰 SHAREPOINT TOOLBOX" FontWeight="Bold" FontSize="11" Foreground="#61AFEF"/>
+                                    <TextBlock Text="Double-click snippet to insert at cursor" FontSize="11" Foreground="#8E8E9E" Margin="0,2,0,0"/>
+                                </StackPanel>
+
+                                <ListBox Grid.Row="1" ItemsSource="{Binding CodeViewerVM.Snippets}"
+                                         SelectedItem="{Binding CodeViewerVM.SelectedSnippet}"
+                                         Background="#1A1A20" BorderBrush="#2C2C36" Foreground="#DCDCDC"
+                                         MouseDoubleClick="SnippetList_MouseDoubleClick">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="4,3">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" Foreground="#ECEFF4"/>
+                                                <TextBlock Text="{Binding Category}" FontSize="10" Foreground="#E5C07B"/>
+                                                <TextBlock Text="{Binding Description}" FontSize="11" Foreground="#8E8E9E" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <Button Grid.Row="2" Content="➕ Insert Snippet at Cursor" Style="{StaticResource PrimaryBtn}"
+                                        Command="{Binding CodeViewerVM.InsertSnippetCommand}"
+                                        HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- RIGHT: EDITOR & PREVIEW HOST -->
+                        <Border Grid.Column="1" Background="#1E1E24" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6">
+                            <Grid>
+                                <!-- EMPTY STATE (WHEN NO FILES ARE OPEN) -->
+                                <Border Background="#1E1E24" Visibility="{Binding CodeViewerVM.ActiveDocument, Converter={StaticResource NullToVis}}">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="⚡" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                        <TextBlock Text="SharePoint Designer Code Workspace" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Double-click any Master Page, Page Layout, CSS, or JS file to edit it here."
+                                                   FontSize="13" Foreground="#8E8E9E" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ACTIVE DOCUMENT WORKSPACE -->
+                                <Grid Visibility="{Binding CodeViewerVM.ActiveDocument, Converter={StaticResource NotNullToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition x:Name="ColEditor" Width="*"/>
+                                        <ColumnDefinition x:Name="ColSplitter" Width="Auto"/>
+                                        <ColumnDefinition x:Name="ColPreview" Width="0"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- CODE EDITOR -->
+                                    <avalonEdit:TextEditor x:Name="CodeEditor" Grid.Column="0"
+                                                           FontFamily="Consolas, Cascadia Code, Courier New"
+                                                           FontSize="14"
+                                                           Foreground="#ECEFF4"
+                                                           Background="#1E1E24"
+                                                           ShowLineNumbers="True"
+                                                           LineNumbersForeground="#5C6370"/>
+
+                                    <!-- SPLITTER (ACTIVE IN SPLIT VIEW) -->
+                                    <GridSplitter x:Name="SplitterControl" Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                                                  Background="#2E2E38" Visibility="Collapsed"/>
+
+                                    <!-- LIVE HTML / BROWSER PREVIEW -->
+                                    <WebBrowser x:Name="PreviewBrowser" Grid.Column="2"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- DOCUMENT STATUS FOOTER -->
+                    <Border Grid.Row="4" Background="#181820" BorderBrush="#2C2C36" BorderThickness="1,1,1,1" CornerRadius="0,0,6,6" Padding="12,4" Margin="0,2,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CodeViewerVM.ActiveDocument.ServerRelativeUrl}" FontSize="11" Foreground="#8E8E9E" Margin="0,0,16,0"/>
+                                <TextBlock Text="{Binding CodeViewerVM.ActiveDocument.CheckOutStatus}" FontSize="11"
+                                           Foreground="{Binding CodeViewerVM.ActiveDocument.CheckOutStatus, Converter={StaticResource StatusBrush}}" FontWeight="Medium"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="Ln " FontSize="11" Foreground="#8E8E9E"/>
+                                <TextBlock Text="{Binding CodeViewerVM.CurrentLine}" FontSize="11" Foreground="#ECEFF4" Margin="0,0,8,0"/>
+                                <TextBlock Text="Col " FontSize="11" Foreground="#8E8E9E"/>
+                                <TextBlock Text="{Binding CodeViewerVM.CurrentColumn}" FontSize="11" Foreground="#ECEFF4" Margin="0,0,16,0"/>
+                                <TextBlock Text="{Binding CodeViewerVM.ActiveDocument.Syntax}" FontSize="11" Foreground="#98C379" FontWeight="Bold" Margin="0,0,12,0"/>
+                                <TextBlock Text="{Binding CodeViewerVM.ActiveDocument.EncodingDisplay}" FontSize="11" Foreground="#8E8E9E"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 5: 1-CLICK BRANDING BACKUP -->
+            <TabItem Header="💾 Site Branding Backup (1-Click)">
+                <Grid Margin="24">
+                    <Border Background="#202026" BorderBrush="#33333F" BorderThickness="1" CornerRadius="6" Padding="28" MaxWidth="750" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="One-Click Portal Branding Backup" FontSize="20" FontWeight="Bold" Foreground="#FFFFFF" Margin="0,0,0,10"/>
+                            <TextBlock Text="Export all master pages, page layouts, display templates, and the entire Style Library into a single timestamped ZIP archive. Perfect for rollbacks, disaster recovery, and migrating between test and production farms."
+                                       TextWrapping="Wrap" FontSize="13" Foreground="#ABB2BF" Margin="0,0,0,20" LineHeight="20"/>
+
+                            <CheckBox Content="Include Master Page Gallery (_catalogs/masterpage)" IsChecked="{Binding BackupVM.IncludeMasterPages}" Foreground="#ECEFF4" FontSize="14" Margin="0,0,0,10"/>
+                            <CheckBox Content="Include Style Library (All folders and assets recursively)" IsChecked="{Binding BackupVM.IncludeStyleLibrary}" Foreground="#ECEFF4" FontSize="14" Margin="0,0,0,24"/>
+
+                            <Button Content="📦 Generate Full Branding Backup ZIP..." Style="{StaticResource PrimaryBtn}"
+                                    Command="{Binding BackupVM.StartBackupCommand}"
+                                    Width="300" Height="40" HorizontalAlignment="Left"/>
+
+                            <TextBlock Text="{Binding BackupVM.StatusMessage}" FontSize="13" Foreground="#61AFEF" Margin="0,20,0,0"/>
+
+                            <StackPanel Margin="0,16,0,0" Visibility="{Binding BackupVM.LastBackupPath, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Last Backup Created:" FontWeight="SemiBold" Foreground="#98C379"/>
+                                <TextBlock Text="{Binding BackupVM.LastBackupPath}" Foreground="#ABB2BF" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB: DEPLOY UAT → PRODUCTION -->
+            <TabItem Header="🚚 Deploy to Production">
+                <Grid Margin="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Source → Target -->
+                        <RowDefinition Height="5*"/>   <!-- Source browser | Queue + options -->
+                        <RowDefinition Height="6"/>
+                        <RowDefinition Height="4*"/>   <!-- Plan -->
+                    </Grid.RowDefinitions>
+
+                    <!-- SOURCE → TARGET -->
+                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Style="{StaticResource CardBorder}" Padding="14,10">
+                            <StackPanel>
+                                <TextBlock Text="SOURCE (UAT) — current connection" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                                <TextBlock Text="{Binding DeploymentVM.SourceSiteUrl}" Foreground="#61AFEF" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding DeploymentVM.SourceUser}" Foreground="#8E8E9E" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Grid.Column="1" Text="➜" FontSize="26" Foreground="#E5C07B" VerticalAlignment="Center" Margin="14,0"/>
+
+                        <Border Grid.Column="2" Style="{StaticResource CardBorder}" Padding="14,10" BorderBrush="#E5C07B">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="160"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.ColumnSpan="4" Text="TARGET (PRODUCTION)" Style="{StaticResource SectionTitle}" Foreground="#E5C07B" Margin="0,0,0,6"/>
+
+                                <ComboBox Grid.Row="1" ItemsSource="{Binding DeploymentVM.Profiles}" SelectedItem="{Binding DeploymentVM.TargetProfile}"
+                                          DisplayMemberPath="ProfileName" Margin="0,0,8,0" Padding="6,4" ToolTip="Saved profile whose credentials are used for the target"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource InputBox}" Margin="0,0,8,0"
+                                         Text="{Binding DeploymentVM.TargetUrl, UpdateSourceTrigger=PropertyChanged}" ToolTip="Target site URL"/>
+                                <PasswordBox Grid.Row="1" Grid.Column="2" x:Name="TargetPasswordBox" PasswordChanged="TargetPasswordBox_PasswordChanged"
+                                             Background="#1A1A20" Foreground="#FFFFFF" BorderBrush="#3F3F4D" Padding="6,4" Margin="0,0,8,0"
+                                             ToolTip="Password (not needed for 'Current Windows User' profiles)"/>
+                                <StackPanel Grid.Row="1" Grid.Column="3" Orientation="Horizontal">
+                                    <Button Content="🔌 Connect Target" Style="{StaticResource PrimaryBtn}" Command="{Binding DeploymentVM.ConnectTargetCommand}"/>
+                                    <Button Content="Disconnect" Style="{StaticResource ToolBtn}" Margin="0" Command="{Binding DeploymentVM.DisconnectTargetCommand}"
+                                            IsEnabled="{Binding DeploymentVM.IsTargetConnected}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="2" Grid.ColumnSpan="4" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Ellipse Width="9" Height="9" Margin="0,0,8,0" VerticalAlignment="Center"
+                                             Fill="{Binding DeploymentVM.IsTargetConnected, Converter={StaticResource StatusBrush}}"/>
+                                    <TextBlock Text="{Binding DeploymentVM.TargetStatus}" Foreground="#ABB2BF" FontSize="12"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="5*"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="6*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- SOURCE BROWSER -->
+                        <Border Style="{StaticResource CardBorder}" Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <WrapPanel Margin="0,0,0,6">
+                                    <Button Content="⚡ Master Pages" Style="{StaticResource ToolBtn}" Margin="0,0,6,4" Command="{Binding DeploymentVM.BrowseLocationCommand}" CommandParameter="masterpages"/>
+                                    <Button Content="🎨 Style Library" Style="{StaticResource ToolBtn}" Margin="0,0,6,4" Command="{Binding DeploymentVM.BrowseLocationCommand}" CommandParameter="style"/>
+                                    <Button Content="📰 Pages" Style="{StaticResource ToolBtn}" Margin="0,0,6,4" Command="{Binding DeploymentVM.BrowseLocationCommand}" CommandParameter="pages"/>
+                                    <Button Content="📄 Site Pages" Style="{StaticResource ToolBtn}" Margin="0,0,6,4" Command="{Binding DeploymentVM.BrowseLocationCommand}" CommandParameter="sitepages"/>
+                                    <Button Content="🏠 Site Root" Style="{StaticResource ToolBtn}" Margin="0,0,6,4" Command="{Binding DeploymentVM.BrowseLocationCommand}" CommandParameter="root"/>
+                                </WrapPanel>
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                                    <Button Content="▲" ToolTip="Up one level" Width="28" Height="24" Padding="0" Margin="0,0,8,0"
+                                            Style="{StaticResource ToolBtn}" Command="{Binding DeploymentVM.SourceUpCommand}"/>
+                                    <TextBlock Text="{Binding DeploymentVM.SourceFolderUrl}" Foreground="#61AFEF" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <DataGrid Grid.Row="2" ItemsSource="{Binding DeploymentVM.SourceItems}" SelectedItem="{Binding DeploymentVM.SelectedSourceItem}" IsReadOnly="True">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                            <EventSetter Event="MouseDoubleClick" Handler="DeploySourceRow_MouseDoubleClick"/>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Width="36">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="" Binding="{Binding IconGlyph}" Width="30"/>
+                                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" FontWeight="SemiBold"/>
+                                        <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="60"/>
+                                        <DataGridTextColumn Header="Modified" Binding="{Binding TimeLastModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="120"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="➕ Add Selected to Deployment ➜" Style="{StaticResource PrimaryBtn}" Command="{Binding DeploymentVM.AddSelectedToQueueCommand}"
+                                            ToolTip="Tick files and/or folders. Double-click a folder to open it; double-click a file to add it."/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- QUEUE + OPTIONS -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Style="{StaticResource CardBorder}" Padding="10" Margin="0,0,0,10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <DockPanel Margin="0,0,0,6">
+                                        <TextBlock Text="DEPLOYMENT QUEUE" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding DeploymentVM.Queue.Count, StringFormat=' ({0})'}" Foreground="#8E8E9E" FontSize="11" VerticalAlignment="Center"/>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Content="Remove" Style="{StaticResource ToolBtn}" Padding="8,3" Command="{Binding DeploymentVM.RemoveFromQueueCommand}"/>
+                                            <Button Content="Clear" Style="{StaticResource ToolBtn}" Padding="8,3" Margin="0" Command="{Binding DeploymentVM.ClearQueueCommand}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <DataGrid Grid.Row="1" ItemsSource="{Binding DeploymentVM.Queue}" SelectedItem="{Binding DeploymentVM.SelectedQueueEntry}"
+                                              IsReadOnly="True" SelectionMode="Single" RowHeight="26">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="" Binding="{Binding Icon}" Width="30"/>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="Source Path" Binding="{Binding SourceUrl}" Width="*" Foreground="#8E8E9E"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Row="1" Style="{StaticResource CardBorder}" Padding="12,10">
+                                <StackPanel>
+                                    <TextBlock Text="OPTIONS" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                                    <WrapPanel>
+                                        <CheckBox Content="Overwrite existing files" IsChecked="{Binding DeploymentVM.Overwrite}" Foreground="#ECEFF4" Margin="0,0,18,6"/>
+                                        <CheckBox Content="Back up Production files before overwriting" IsChecked="{Binding DeploymentVM.BackupTarget}" Foreground="#ECEFF4" Margin="0,0,18,6"/>
+                                        <CheckBox Content="Copy properties (content type, page layout, page content)" IsChecked="{Binding DeploymentVM.CopyMetadata}" Foreground="#ECEFF4" Margin="0,0,18,6"/>
+                                        <CheckBox Content="Rewrite UAT links to Production in properties" IsChecked="{Binding DeploymentVM.RewriteUrls}" Foreground="#ECEFF4" Margin="0,0,18,6"/>
+                                    </WrapPanel>
+                                    <Grid Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="220"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="After upload:" Style="{StaticResource FieldLabel}" Margin="0,0,8,0"/>
+                                        <ComboBox Grid.Column="1" ItemsSource="{Binding DeploymentVM.CheckInModes}" SelectedIndex="{Binding DeploymentVM.CheckInModeIndex}" Padding="6,3"/>
+                                        <CheckBox Grid.Column="2" Content="Approve (content approval)" IsChecked="{Binding DeploymentVM.Approve}" Foreground="#ECEFF4" VerticalAlignment="Center" Margin="14,0"/>
+                                        <TextBlock Grid.Column="3" Text="Comment:" Style="{StaticResource FieldLabel}" Margin="0,0,8,0"/>
+                                        <TextBox Grid.Column="4" Style="{StaticResource InputBox}" Text="{Binding DeploymentVM.Comment, UpdateSourceTrigger=PropertyChanged}"/>
+                                    </Grid>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Backups &amp; reports:" Style="{StaticResource FieldLabel}" Margin="0,0,8,0"/>
+                                        <TextBox Grid.Column="1" Style="{StaticResource InputBox}" Text="{Binding DeploymentVM.BackupFolder, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <Button Grid.Column="2" Content="..." Style="{StaticResource ToolBtn}" Margin="6,0,0,0" Padding="10,4" Command="{Binding DeploymentVM.BrowseBackupFolderCommand}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="Transparent" ResizeDirection="Rows"/>
+
+                    <!-- PLAN / RESULTS -->
+                    <Border Grid.Row="3" Style="{StaticResource CardBorder}" Padding="10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="🔍 Analyze (Dry Run)" Style="{StaticResource ToolBtn}" Command="{Binding DeploymentVM.AnalyzeCommand}"
+                                            IsEnabled="{Binding DeploymentVM.IsBusy, Converter={StaticResource InvBool}}"
+                                            ToolTip="Shows exactly what will happen on Production without changing anything"/>
+                                    <Button Content="🚀 Deploy to Production" Style="{StaticResource PrimaryBtn}" Command="{Binding DeploymentVM.DeployCommand}"
+                                            IsEnabled="{Binding DeploymentVM.IsBusy, Converter={StaticResource InvBool}}"/>
+                                    <Button Content="⛔ Cancel" Style="{StaticResource ToolBtn}" Command="{Binding DeploymentVM.CancelCommand}"
+                                            IsEnabled="{Binding DeploymentVM.IsBusy}"/>
+                                    <Button Content="📄 Export Report" Style="{StaticResource ToolBtn}" Command="{Binding DeploymentVM.ExportReportCommand}"/>
+                                    <Button Content="📂 Backups" Style="{StaticResource ToolBtn}" Command="{Binding DeploymentVM.OpenBackupFolderCommand}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <ProgressBar Width="160" Height="6" Margin="0,0,10,0" Maximum="{Binding DeploymentVM.ProgressMax}" Value="{Binding DeploymentVM.ProgressValue}"
+                                                 Visibility="{Binding DeploymentVM.IsDeploying, Converter={StaticResource BoolToVis}}"/>
+                                    <TextBlock Text="⚠ Plan is out of date — Analyze again" Foreground="#E5C07B" FontSize="12" Margin="0,0,12,0"
+                                               Visibility="{Binding DeploymentVM.IsPlanStale, Converter={StaticResource BoolToVis}}"/>
+                                    <TextBlock Text="{Binding DeploymentVM.StatusMessage}" Foreground="#8E8E9E" FontSize="12" MaxWidth="600"
+                                               TextTrimming="CharacterEllipsis" ToolTip="{Binding DeploymentVM.StatusMessage}"/>
+                                </StackPanel>
+                            </Grid>
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding DeploymentVM.Plan}" IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="" Binding="{Binding Icon}" Width="30"/>
+                                    <DataGridTemplateColumn Header="Status" Width="95">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Status}" FontWeight="SemiBold" VerticalAlignment="Top" Margin="2,0,0,0"
+                                                           Foreground="{Binding Status, Converter={StaticResource DeployStatusBrush}}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="190" FontWeight="SemiBold"/>
+                                    <DataGridTextColumn Header="Target Path" Binding="{Binding TargetUrl}" Width="330"/>
+                                    <DataGridTextColumn Header="Size" Binding="{Binding SizeDisplay}" Width="75"/>
+                                    <DataGridTextColumn Header="UAT Modified" Binding="{Binding SourceModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="120"/>
+                                    <DataGridTextColumn Header="Prod Modified" Binding="{Binding TargetModified, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Width="120"/>
+                                    <DataGridTextColumn Header="Details" Binding="{Binding Message}" Width="*" Foreground="#ABB2BF"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 6: ACTIVITY & OPERATIONS LOG -->
+            <TabItem Header="📜 Activity Log">
+                <Grid Margin="18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="Clear Log" Style="{StaticResource ToolBtn}" Command="{Binding ClearLogCommand}"/>
+                        <Button Content="Copy All" Style="{StaticResource ToolBtn}" Click="BtnCopyLog_Click"/>
+                    </StackPanel>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding LogEntries}"
+                             Background="#141418" BorderBrush="#2E2E38" Foreground="#ABB2BF"
+                             FontFamily="Consolas, Courier New" FontSize="12">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Margin="2"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- STATUS BAR -->
+        <Border Grid.Row="2" Background="#141418" BorderBrush="#2E2E38" BorderThickness="0,1,0,0" Padding="16,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="{Binding ConnectionStatusText}" FontSize="12" Foreground="#8E8E9E" VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="Ready" FontSize="12" Foreground="#98C379" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
