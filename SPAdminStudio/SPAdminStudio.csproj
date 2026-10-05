@@ -8,6 +8,18 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <!-- Release publish = one self-contained .exe that runs on any Windows x64 machine without installing .NET.
+       `dotnet publish -c Release` (or Visual Studio: Publish) produces it in bin\Release\...\publish. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- WPF's native DLLs (wpfgfx, PresentationNative, D3DCompiler...) go inside the .exe too -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

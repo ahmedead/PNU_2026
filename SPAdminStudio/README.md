@@ -108,8 +108,19 @@ cd SPAdminStudio
 dotnet run
 ```
 
-To create a standalone, self-contained single `.exe` file that can be distributed to administrators without requiring any .NET runtime installation:
+### Publishing a single .exe
+
+The project is set up to publish one self-contained, compressed `SPAdminStudio.exe` (about 70 MB) that runs on any Windows x64 machine without installing .NET — copy that one file to the admin's machine.
+
+From a terminal in `SPAdminStudio`:
 
 ```powershell
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./dist
+dotnet publish SPAdminStudio.csproj -p:PublishProfile=FolderProfile
 ```
+
+or in Visual Studio: right-click the project → **Publish** → **FolderProfile** → **Publish**.
+
+The result is written to `SPAdminStudio\dist\SPAdminStudio.exe` (ignored by git).
+
+> **If publishing fails** with *"The process cannot access the file ... because it is being used by another process"*, close every running SPAdminStudio window (including copies started from an earlier publish folder) and run `dotnet build-server shutdown`, then publish again.
+> With *"MSB1011: Specify which project or solution file to use"*, delete any leftover `SPAdminStudio_*_wpftmp.csproj` file in the project folder (a temporary file from an interrupted build).
