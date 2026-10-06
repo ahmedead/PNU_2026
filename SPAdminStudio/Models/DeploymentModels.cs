@@ -84,6 +84,8 @@ namespace SPAdminStudio.Models
     public class SPListSettings
     {
         public string Id { get; init; } = string.Empty;
+        /// <summary>Server-relative URL of the web that owns the list (list IDs only resolve there).</summary>
+        public string WebUrl { get; init; } = string.Empty;
         public string Title { get; init; } = string.Empty;
         public string EntityTypeName { get; init; } = string.Empty;
         public int BaseTemplate { get; init; }

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -142,6 +143,49 @@ namespace SPAdminStudio.Services
             var sentence = end > 0 ? text[..(end + 1)] : text;
             return sentence.Length > 120 ? sentence[..120] + "..." : sentence;
         }
+
+        /// <summary>
+        /// GET that retries once when the server refuses the login (401). Windows logins (NTLM) are tied to a
+        /// connection; a reverse proxy that switches connections between requests makes them fail sporadically.
+        /// </summary>
+        private async Task<HttpResponseMessage> GetWithLoginRetryAsync(string url, CancellationToken cancellationToken)
+        {
+            if (_httpClient == null) throw new InvalidOperationException("Not connected.");
+
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            if (response.StatusCode != HttpStatusCode.Unauthorized) return response;
+
+            response.Dispose();
+            await Task.Delay(300, cancellationToken);
+            var retry = await _httpClient.GetAsync(url, cancellationToken);
+            if (retry.IsSuccessStatusCode)
+            {
+                Notice?.Invoke($"{new Uri(_baseUrl).Host} refused the login once and accepted it on retry " +
+                               "(typical when a proxy breaks Windows/NTLM logins between requests).");
+            }
+            return retry;
+        }
+
+        /// <summary>"HTTP 401 Unauthorized from pnu.edu.sa — ..." with the server's login methods for 401s.</summary>
+        private string DescribeReadFailure(HttpResponseMessage response, string body)
+        {
+            var host = response.RequestMessage?.RequestUri?.Host ?? new Uri(_baseUrl).Host;
+            var text = $"HTTP {(int)response.StatusCode} {response.ReasonPhrase} from {host}";
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                var schemes = string.Join(", ", response.Headers.WwwAuthenticate.Select(h => h.Scheme).Distinct());
+                text += " — the server refused the login" + (schemes.Length > 0 ? $" (it asks for: {schemes})" : " (no login method offered)") +
+                        $". Account '{_currentSiteInfo?.CurrentUserLogin}' may have no access to this site, " +
+                        "or a proxy is dropping the Windows login between requests.";
+                return string.IsNullOrWhiteSpace(body) ? text : $"{text} {DescribeErrorBody(body)}";
+            }
+
+            return $"{text}: {DescribeErrorBody(body)}";
+        }
+
+        private static bool IsNotFoundBody(string body) =>
+            body.Contains("-2130575338") || body.Contains("-2147024894") || body.Contains("File Not Found", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>Readable description of an error response body.</summary>
         private static string DescribeErrorBody(string body)

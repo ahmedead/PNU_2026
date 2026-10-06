@@ -37,8 +37,8 @@ namespace SPAdminStudio.Services
         Task<ListItemSnapshot> GetFileListItemAsync(string fileServerRelativeUrl, CancellationToken cancellationToken = default);
         Task<SPListSettings> GetFileParentListAsync(string fileServerRelativeUrl, CancellationToken cancellationToken = default);
         Task<int> GetFileListItemIdAsync(string fileServerRelativeUrl, CancellationToken cancellationToken = default);
-        Task<List<SPFieldInfo>> GetListFieldsAsync(string listId, CancellationToken cancellationToken = default);
-        Task<List<SPContentTypeInfo>> GetListContentTypesAsync(string listId, CancellationToken cancellationToken = default);
+        Task<List<SPFieldInfo>> GetListFieldsAsync(string listId, CancellationToken cancellationToken = default, string? webUrl = null);
+        Task<List<SPContentTypeInfo>> GetListContentTypesAsync(string listId, CancellationToken cancellationToken = default, string? webUrl = null);
         Task UpdateListItemAsync(string listId, int itemId, string entityTypeName, IDictionary<string, object?> values, CancellationToken cancellationToken = default, string? fileServerRelativeUrl = null);
 
         Task<WriteProbeResult> ProbeAsync(string name, System.Net.Http.HttpMethod method, string relativeUrl, CancellationToken cancellationToken = default,

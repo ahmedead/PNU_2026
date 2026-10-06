@@ -466,7 +466,7 @@ namespace SPAdminStudio.Services
             {
                 if (!context.ListContentTypes.TryGetValue(list.Id, out var listContentTypes))
                 {
-                    listContentTypes = await _target.GetListContentTypesAsync(list.Id, cancellationToken);
+                    listContentTypes = await _target.GetListContentTypesAsync(list.Id, cancellationToken, list.WebUrl);
                     context.ListContentTypes[list.Id] = listContentTypes;
                 }
 
@@ -484,7 +484,7 @@ namespace SPAdminStudio.Services
 
             if (!context.Fields.TryGetValue(list.Id, out var fields))
             {
-                fields = await _target.GetListFieldsAsync(list.Id, cancellationToken);
+                fields = await _target.GetListFieldsAsync(list.Id, cancellationToken, list.WebUrl);
                 context.Fields[list.Id] = fields;
             }
 

@@ -20,18 +20,18 @@ namespace SPAdminStudio.Services
             if (_httpClient == null) throw new InvalidOperationException("Not connected.");
 
             var safePath = SafeUrl(serverRelativeUrl);
-            var url = $"_api/web/GetFileByServerRelativeUrl('{safePath}')?$expand=ModifiedBy,CheckedOutByUser&$select=Exists,Name,ServerRelativeUrl,Length,CheckOutType,CheckedOutByUser/Title,ModifiedBy/Title,TimeLastModified,UIVersionLabel";
+            var (api, _) = await WebApiForPathAsync(serverRelativeUrl, cancellationToken);
+            var url = $"{api}/GetFileByServerRelativeUrl('{safePath}')?$expand=ModifiedBy,CheckedOutByUser&$select=Exists,Name,ServerRelativeUrl,Length,CheckOutType,CheckedOutByUser/Title,ModifiedBy/Title,TimeLastModified,UIVersionLabel";
 
-            using var response = await _httpClient.GetAsync(url, cancellationToken);
+            using var response = await GetWithLoginRetryAsync(url, cancellationToken);
             if (response.StatusCode == HttpStatusCode.NotFound) return null;
 
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 // SharePoint 2013 reports a missing file as 500 with "File Not Found" (-2130575338)
-                if (body.Contains("-2130575338") || body.Contains("-2147024894") || body.Contains("File Not Found", StringComparison.OrdinalIgnoreCase))
-                    return null;
-                throw new InvalidOperationException($"Could not check '{serverRelativeUrl}': {ExtractErrorMessage(body)}");
+                if (IsNotFoundBody(body)) return null;
+                throw new InvalidOperationException($"Could not check '{serverRelativeUrl}': {DescribeReadFailure(response, body)}");
             }
 
             using var doc = JsonDocument.Parse(body);
@@ -45,10 +45,17 @@ namespace SPAdminStudio.Services
             if (_httpClient == null) throw new InvalidOperationException("Not connected.");
 
             var safePath = SafeUrl(serverRelativeUrl.TrimEnd('/'));
-            using var response = await _httpClient.GetAsync($"_api/web/GetFolderByServerRelativeUrl('{safePath}')?$select=Exists,Name", cancellationToken);
-            if (!response.IsSuccessStatusCode) return false;
-
+            var (api, _) = await WebApiForPathAsync(serverRelativeUrl.TrimEnd('/'), cancellationToken);
+            using var response = await GetWithLoginRetryAsync($"{api}/GetFolderByServerRelativeUrl('{safePath}')?$select=Exists,Name", cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                // Only "not found" means "does not exist": a refused login or server error must not look like
+                // a missing folder (the deployment would then try to create it)
+                if (response.StatusCode == HttpStatusCode.NotFound || IsNotFoundBody(body)) return false;
+                throw new InvalidOperationException($"Could not check folder '{serverRelativeUrl}': {DescribeReadFailure(response, body)}");
+            }
+
             using var doc = JsonDocument.Parse(body);
             var el = doc.RootElement.TryGetProperty("d", out var d) ? d : doc.RootElement;
             return !(el.TryGetProperty("Exists", out var exists) && exists.ValueKind == JsonValueKind.False);
@@ -63,12 +70,13 @@ namespace SPAdminStudio.Services
             if (_httpClient == null) throw new InvalidOperationException("Not connected.");
             var safePath = SafeUrl(serverRelativeUrl.TrimEnd('/'));
 
-            using (var listResponse = await _httpClient.GetAsync($"_api/web/GetList('{safePath}')?$select=Id", cancellationToken))
+            var (api, _) = await WebApiForPathAsync(serverRelativeUrl.TrimEnd('/'), cancellationToken);
+            using (var listResponse = await _httpClient.GetAsync($"{api}/GetList('{safePath}')?$select=Id", cancellationToken))
             {
                 if (listResponse.IsSuccessStatusCode) return true;
             }
 
-            using var itemResponse = await _httpClient.GetAsync($"_api/web/GetFolderByServerRelativeUrl('{safePath}')/ListItemAllFields?$select=Id", cancellationToken);
+            using var itemResponse = await _httpClient.GetAsync($"{api}/GetFolderByServerRelativeUrl('{safePath}')/ListItemAllFields?$select=Id", cancellationToken);
             if (!itemResponse.IsSuccessStatusCode) return false;
 
             var body = await itemResponse.Content.ReadAsStringAsync(cancellationToken);
@@ -80,7 +88,8 @@ namespace SPAdminStudio.Services
         public async Task<ListItemSnapshot> GetFileListItemAsync(string fileServerRelativeUrl, CancellationToken cancellationToken = default)
         {
             var safePath = SafeUrl(fileServerRelativeUrl);
-            var d = await GetEntityAsync($"_api/web/GetFileByServerRelativeUrl('{safePath}')/ListItemAllFields?$expand=ContentType", cancellationToken);
+            var (api, _) = await WebApiForPathAsync(fileServerRelativeUrl, cancellationToken);
+            var d = await GetEntityAsync($"{api}/GetFileByServerRelativeUrl('{safePath}')/ListItemAllFields?$expand=ContentType", cancellationToken);
 
             var values = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
             foreach (var prop in d.EnumerateObject())
@@ -101,12 +110,16 @@ namespace SPAdminStudio.Services
         public async Task<SPListSettings> GetFileParentListAsync(string fileServerRelativeUrl, CancellationToken cancellationToken = default)
         {
             var safePath = SafeUrl(fileServerRelativeUrl);
+            var (api, web) = await WebApiForPathAsync(fileServerRelativeUrl, cancellationToken);
             var d = await GetEntityAsync(
-                $"_api/web/GetFileByServerRelativeUrl('{safePath}')/ListItemAllFields/ParentList?$select=Id,Title,ListItemEntityTypeFullName,BaseTemplate,EnableModeration,EnableMinorVersions,ForceCheckout",
+                $"{api}/GetFileByServerRelativeUrl('{safePath}')/ListItemAllFields/ParentList?$select=Id,Title,ListItemEntityTypeFullName,BaseTemplate,EnableModeration,EnableMinorVersions,ForceCheckout,ParentWebUrl",
                 cancellationToken);
 
+            var parentWeb = JStr(d, "ParentWebUrl");
             return new SPListSettings
             {
+                // A list ID only resolves on its own web
+                WebUrl = string.IsNullOrEmpty(parentWeb) ? web : parentWeb,
                 Id = JStr(d, "Id"),
                 Title = JStr(d, "Title"),
                 EntityTypeName = JStr(d, "ListItemEntityTypeFullName"),
@@ -120,14 +133,15 @@ namespace SPAdminStudio.Services
         public async Task<int> GetFileListItemIdAsync(string fileServerRelativeUrl, CancellationToken cancellationToken = default)
         {
             var safePath = SafeUrl(fileServerRelativeUrl);
-            var d = await GetEntityAsync($"_api/web/GetFileByServerRelativeUrl('{safePath}')/ListItemAllFields?$select=Id", cancellationToken);
+            var (api, _) = await WebApiForPathAsync(fileServerRelativeUrl, cancellationToken);
+            var d = await GetEntityAsync($"{api}/GetFileByServerRelativeUrl('{safePath}')/ListItemAllFields?$select=Id", cancellationToken);
             return JInt(d, "Id");
         }
 
-        public async Task<List<SPFieldInfo>> GetListFieldsAsync(string listId, CancellationToken cancellationToken = default)
+        public async Task<List<SPFieldInfo>> GetListFieldsAsync(string listId, CancellationToken cancellationToken = default, string? webUrl = null)
         {
             var items = await GetCollectionAsync(
-                $"_api/web/lists(guid'{listId}')/fields?$select=Id,Title,InternalName,TypeAsString,Group,Hidden,Required,ReadOnlyField",
+                $"{ApiBaseFor(webUrl)}/lists(guid'{listId}')/fields?$select=Id,Title,InternalName,TypeAsString,Group,Hidden,Required,ReadOnlyField",
                 cancellationToken);
 
             return items.Select(e => new SPFieldInfo
@@ -143,9 +157,9 @@ namespace SPAdminStudio.Services
             }).ToList();
         }
 
-        public async Task<List<SPContentTypeInfo>> GetListContentTypesAsync(string listId, CancellationToken cancellationToken = default)
+        public async Task<List<SPContentTypeInfo>> GetListContentTypesAsync(string listId, CancellationToken cancellationToken = default, string? webUrl = null)
         {
-            var items = await GetCollectionAsync($"_api/web/lists(guid'{listId}')/contenttypes", cancellationToken);
+            var items = await GetCollectionAsync($"{ApiBaseFor(webUrl)}/lists(guid'{listId}')/contenttypes", cancellationToken);
             return items.Select(e =>
             {
                 var id = JStr(e, "StringId");
@@ -162,11 +176,12 @@ namespace SPAdminStudio.Services
             foreach (var kv in values) payload[kv.Key] = kv.Value;
 
             var action = $"Updating properties ({string.Join(", ", values.Keys)})";
-            var url = $"_api/web/lists(guid'{listId}')/items({itemId})";
+            var web = fileServerRelativeUrl != null ? await GetContainingWebUrlAsync(fileServerRelativeUrl, cancellationToken) : null;
+            var url = $"{ApiBaseFor(web)}/lists(guid'{listId}')/items({itemId})";
 
             async Task<(bool, string, Exception?)> Rest()
             {
-                var (ok, body, status, reason) = await SendWriteAsync(url, () => VerboseJson(payload), cancellationToken, "MERGE");
+                var (ok, body, status, reason) = await SendWriteAsync(url, () => VerboseJson(payload), cancellationToken, "MERGE", web);
                 return ok
                     ? (true, body, null)
                     : (false, body, await CreateWriteFailureAsync(action, fileServerRelativeUrl ?? ServerRelativeWebUrl, status, reason, body, cancellationToken));

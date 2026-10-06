@@ -50,11 +50,11 @@ namespace SPAdminStudio.Services
         {
             if (_httpClient == null) throw new InvalidOperationException("Not connected.");
 
-            using var response = await _httpClient.GetAsync(url, cancellationToken);
+            using var response = await GetWithLoginRetryAsync(url, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                throw new InvalidOperationException($"HTTP {(int)response.StatusCode}: {ExtractErrorMessage(body)}");
+                throw new InvalidOperationException(DescribeReadFailure(response, body));
             }
             return body;
         }

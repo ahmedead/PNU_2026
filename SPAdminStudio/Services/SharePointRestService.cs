@@ -724,13 +724,14 @@ namespace SPAdminStudio.Services
             if (_httpClient == null) throw new InvalidOperationException("Not connected.");
 
             var safePath = SafeUrl(serverRelativeUrl);
-            var url = $"_api/web/GetFileByServerRelativeUrl('{safePath}')?$expand=ModifiedBy,CheckedOutByUser&$select=Name,ServerRelativeUrl,Length,CheckOutType,CheckedOutByUser/Title,ModifiedBy/Title,TimeLastModified,UIVersionLabel";
+            var (api, _) = await WebApiForPathAsync(serverRelativeUrl, cancellationToken);
+            var url = $"{api}/GetFileByServerRelativeUrl('{safePath}')?$expand=ModifiedBy,CheckedOutByUser&$select=Name,ServerRelativeUrl,Length,CheckOutType,CheckedOutByUser/Title,ModifiedBy/Title,TimeLastModified,UIVersionLabel";
 
-            using var response = await _httpClient.GetAsync(url, cancellationToken);
+            using var response = await GetWithLoginRetryAsync(url, cancellationToken);
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                throw new InvalidOperationException($"Could not read file state for '{serverRelativeUrl}': {ExtractErrorMessage(body)}");
+                throw new InvalidOperationException($"Could not read file state for '{serverRelativeUrl}': {DescribeReadFailure(response, body)}");
             }
 
             using var doc = JsonDocument.Parse(body);
@@ -869,7 +870,8 @@ namespace SPAdminStudio.Services
 
             var safeFolder = SafeUrl(folderServerRelativeUrl);
             var safeFileName = Uri.EscapeDataString(fileName).Replace("'", "''");
-            var url = $"_api/web/GetFolderByServerRelativeUrl('{safeFolder}')/Files/Add(url='{safeFileName}',overwrite={(overwrite ? "true" : "false")})";
+            var (api, web) = await WebApiForPathAsync(folderServerRelativeUrl.TrimEnd('/') + "/" + fileName, cancellationToken);
+            var url = $"{api}/GetFolderByServerRelativeUrl('{safeFolder}')/Files/Add(url='{safeFileName}',overwrite={(overwrite ? "true" : "false")})";
             var fileUrl = folderServerRelativeUrl.TrimEnd('/') + "/" + fileName;
 
             progress?.Report(new TransferProgress
@@ -886,7 +888,7 @@ namespace SPAdminStudio.Services
                     var c = new ByteArrayContent(content);
                     c.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
                     return c;
-                }, cancellationToken);
+                }, cancellationToken, webUrl: web);
                 if (ok) return (true, body, null);
 
                 var failure = await CreateWriteFailureAsync($"Upload of '{fileName}'", folderServerRelativeUrl, status, reason, body, cancellationToken);
@@ -902,10 +904,9 @@ namespace SPAdminStudio.Services
         /// returns the outcome so callers can decide between an error and SharePoint Designer's protocols.
         /// </summary>
         private async Task<(bool ok, string body, HttpStatusCode status, string? reason)> SendWriteAsync(string url, Func<HttpContent> contentFactory,
-            CancellationToken cancellationToken, string? xHttpMethod = null)
+            CancellationToken cancellationToken, string? xHttpMethod = null, string? webUrl = null)
         {
             if (_httpClient == null) throw new InvalidOperationException("Not connected.");
-            await RefreshFormDigestAsync(cancellationToken);
 
             string lastError = string.Empty;
             HttpStatusCode lastStatus = 0;
@@ -913,8 +914,12 @@ namespace SPAdminStudio.Services
 
             for (int attempt = 0; attempt < 2; attempt++)
             {
+                // The digest must come from the web being written to
+                var (digest, digestFailure, digestStatus, digestReason) = await GetDigestForWebAsync(webUrl, force: attempt > 0, cancellationToken);
+                if (digest == null) return (false, digestFailure, digestStatus, digestReason);
+
                 using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = contentFactory() };
-                request.Headers.Add("X-RequestDigest", _formDigestValue);
+                request.Headers.Add("X-RequestDigest", digest);
                 request.Headers.Accept.Clear();
                 request.Headers.TryAddWithoutValidation("Accept", "application/json;odata=verbose");
                 if (!string.IsNullOrEmpty(xHttpMethod))
@@ -929,11 +934,9 @@ namespace SPAdminStudio.Services
                 lastError = await response.Content.ReadAsStringAsync(cancellationToken);
                 lastStatus = response.StatusCode;
                 lastReason = response.ReasonPhrase;
-                if (IsExpiredDigest(response.StatusCode, lastError) ||
-                    (response.StatusCode == HttpStatusCode.Forbidden && string.IsNullOrEmpty(_formDigestValue)))
+                if (IsExpiredDigest(response.StatusCode, lastError))
                 {
-                    await RefreshFormDigestAsync(cancellationToken, force: true);
-                    continue;
+                    continue; // next attempt fetches a fresh digest
                 }
 
                 break;
@@ -964,11 +967,12 @@ namespace SPAdminStudio.Services
             // even when connected to a subsite.
             var safeParent = SafeUrl(parentServerRelativeUrl.TrimEnd('/'));
             var safeName = Uri.EscapeDataString(newFolderName).Replace("'", "''");
-            var url = $"_api/web/GetFolderByServerRelativeUrl('{safeParent}')/Folders/Add('{safeName}')";
+            var (api, web) = await WebApiForPathAsync(parentServerRelativeUrl.TrimEnd('/') + "/" + newFolderName, cancellationToken);
+            var url = $"{api}/GetFolderByServerRelativeUrl('{safeParent}')/Folders/Add('{safeName}')";
 
             async Task<(bool, string, Exception?)> Rest()
             {
-                var (ok, body, status, reason) = await SendWriteAsync(url, () => new ByteArrayContent(Array.Empty<byte>()), cancellationToken);
+                var (ok, body, status, reason) = await SendWriteAsync(url, () => new ByteArrayContent(Array.Empty<byte>()), cancellationToken, webUrl: web);
                 return ok
                     ? (true, body, null)
                     : (false, body, await CreateWriteFailureAsync($"Creating folder '{newFolderName}'", parentServerRelativeUrl, status, reason, body, cancellationToken));
@@ -1037,12 +1041,13 @@ namespace SPAdminStudio.Services
             if (_httpClient == null) throw new InvalidOperationException("Not connected.");
 
             var safePath = SafeUrl(serverRelativeUrl);
-            var url = $"_api/web/GetFileByServerRelativeUrl('{safePath}')/{operationEndpoint}";
+            var (api, web) = await WebApiForPathAsync(serverRelativeUrl, cancellationToken);
+            var url = $"{api}/GetFileByServerRelativeUrl('{safePath}')/{operationEndpoint}";
             var action = $"{operationEndpoint.Split('(')[0]} of '{Path.GetFileName(serverRelativeUrl)}'";
 
             async Task<(bool, string, Exception?)> Rest()
             {
-                var (ok, body, status, reason) = await SendWriteAsync(url, () => new ByteArrayContent(Array.Empty<byte>()), cancellationToken);
+                var (ok, body, status, reason) = await SendWriteAsync(url, () => new ByteArrayContent(Array.Empty<byte>()), cancellationToken, webUrl: web);
                 return ok
                     ? (true, body, null)
                     : (false, body, await CreateWriteFailureAsync(action, serverRelativeUrl, status, reason, body, cancellationToken));

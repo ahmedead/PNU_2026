@@ -37,6 +37,7 @@ namespace SPAdminStudio.Services
         {
             _restWritesBlocked = false;
             _containingWebCache.Clear();
+            _webDigests.Clear();
         }
 
         private string HostOrigin => new Uri(_baseUrl).GetLeftPart(UriPartial.Authority);
@@ -116,6 +117,61 @@ namespace SPAdminStudio.Services
                 if (candidate == "/") return Remember(visited, SiteCollectionRootRelative.Length == 0 ? "/" : SiteCollectionRootRelative);
                 candidate = ParentPath(candidate);
             }
+        }
+
+        /// <summary>
+        /// REST base ("…/_api/web") of the web that owns <paramref name="serverRelativePath"/>. Files and lists are
+        /// addressed through their own web: list IDs only resolve there, and cross-web reads can be refused.
+        /// </summary>
+        private async Task<(string apiBase, string webUrl)> WebApiForPathAsync(string serverRelativePath, CancellationToken cancellationToken)
+        {
+            var web = await GetContainingWebUrlAsync(serverRelativePath, cancellationToken);
+            return (ApiBaseFor(web), web);
+        }
+
+        private string ApiBaseFor(string? webUrl)
+        {
+            var current = (_currentSiteInfo?.ServerRelativeUrl ?? "/").TrimEnd('/');
+            var web = (webUrl ?? current).TrimEnd('/');
+            return string.Equals(web, current, StringComparison.OrdinalIgnoreCase)
+                ? "_api/web"
+                : $"{HostOrigin}{EscapePath(web)}/_api/web";
+        }
+
+        private bool IsConnectedWeb(string? webUrl) =>
+            webUrl == null || string.Equals(webUrl.TrimEnd('/'), (_currentSiteInfo?.ServerRelativeUrl ?? "/").TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
+
+        private readonly Dictionary<string, (string Value, DateTime Expires)> _webDigests = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Form digest for writes to <paramref name="webUrl"/> (a digest is requested from the web being written to).
+        /// Returns the response body instead of throwing when the token endpoint is not reachable.
+        /// </summary>
+        private async Task<(string? digest, string failureBody, HttpStatusCode status, string? reason)> GetDigestForWebAsync(
+            string? webUrl, bool force, CancellationToken cancellationToken)
+        {
+            if (IsConnectedWeb(webUrl))
+            {
+                await RefreshFormDigestAsync(cancellationToken, force);
+                return (_formDigestValue, string.Empty, HttpStatusCode.OK, null);
+            }
+
+            var web = webUrl!.TrimEnd('/');
+            if (!force && _webDigests.TryGetValue(web, out var cached) && DateTime.UtcNow < cached.Expires) return (cached.Value, string.Empty, HttpStatusCode.OK, null);
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"{HostOrigin}{EscapePath(web)}/_api/contextinfo")
+            {
+                Content = new ByteArrayContent(Array.Empty<byte>())
+            };
+            using var response = await _httpClient!.SendAsync(request, cancellationToken);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var match = Regex.Match(body, @"""FormDigestValue""\s*:\s*""([^""]+)""");
+            if (!response.IsSuccessStatusCode || !match.Success) return (null, body, response.StatusCode, response.ReasonPhrase);
+
+            var timeout = Regex.Match(body, @"""FormDigestTimeoutSeconds""\s*:\s*(\d+)");
+            var seconds = timeout.Success ? int.Parse(timeout.Groups[1].Value) : 1800;
+            _webDigests[web] = (match.Groups[1].Value, DateTime.UtcNow.AddSeconds(Math.Max(60, seconds - 120)));
+            return (match.Groups[1].Value, string.Empty, HttpStatusCode.OK, null);
         }
 
         private string Remember(IEnumerable<string> paths, string web)
