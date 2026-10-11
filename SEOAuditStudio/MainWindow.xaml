@@ -1,0 +1,1593 @@
+<Window x:Class="SEOAuditStudio.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ctl="clr-namespace:SEOAuditStudio.Controls"
+        xmlns:vm="clr-namespace:SEOAuditStudio.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
+        Title="SEO Audit Studio" Height="900" Width="1480" MinWidth="1100" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgDark}" Foreground="{StaticResource TextMain}"
+        FontFamily="Segoe UI, Segoe UI Variable, Tahoma, Arial" FontSize="13">
+
+    <Window.Resources>
+        <!-- Clickable stat card -->
+        <Style x:Key="CardBtn" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMain}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{StaticResource BgCard}" BorderBrush="{StaticResource BorderColor}"
+                                BorderThickness="1" CornerRadius="6" Padding="16">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#00A389"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Flat row button for clickable lists -->
+        <Style x:Key="RowBtn" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMain}"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="4" Padding="6,7">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#2A2A33"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="Padding" Value="0,10,0,0"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="#B8B8C6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="bd" Padding="7,7" BorderThickness="0,0,0,2" BorderBrush="Transparent" Background="Transparent">
+                            <ContentPresenter ContentSource="Header"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#00A389"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Small glyph button (open in browser, copy) -->
+        <Style x:Key="IconBtn" TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#9A9AAA"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Margin" Value="2,0,0,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#383845"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- A URL (the DataContext is the string): click opens it in the browser; buttons open / copy -->
+        <DataTemplate x:Key="UrlCell">
+            <DockPanel LastChildFill="True" Background="Transparent">
+                <DockPanel.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Open in browser" Command="{Binding PlacementTarget.Tag.OpenUrlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Copy URL" Command="{Binding PlacementTarget.Tag.CopyTextCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                    </ContextMenu>
+                </DockPanel.ContextMenu>
+                <DockPanel.Tag>
+                    <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                </DockPanel.Tag>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconBtn}" Content="&#xE8C8;" ToolTip="Copy URL"
+                        Command="{Binding DataContext.CopyTextCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconBtn}" Content="&#xE8A7;" ToolTip="Open in browser"
+                        Command="{Binding DataContext.OpenUrlCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                <Button Style="{StaticResource LinkBtn}" Content="{Binding}" ToolTip="{Binding}" VerticalAlignment="Center"
+                        Command="{Binding DataContext.OpenUrlCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+            </DockPanel>
+        </DataTemplate>
+
+        <!-- A crawled page's URL: click shows its details; buttons open in browser / copy -->
+        <DataTemplate x:Key="PageUrlCell">
+            <DockPanel LastChildFill="True" Background="Transparent">
+                <DockPanel.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Show page details" Command="{Binding PlacementTarget.Tag.ShowPageCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Open in browser" Command="{Binding PlacementTarget.Tag.OpenUrlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                        <MenuItem Header="Copy URL" Command="{Binding PlacementTarget.Tag.CopyTextCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" CommandParameter="{Binding}"/>
+                    </ContextMenu>
+                </DockPanel.ContextMenu>
+                <DockPanel.Tag>
+                    <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=Window}"/>
+                </DockPanel.Tag>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconBtn}" Content="&#xE8C8;" ToolTip="Copy URL"
+                        Command="{Binding DataContext.CopyTextCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconBtn}" Content="&#xE8A7;" ToolTip="Open in browser"
+                        Command="{Binding DataContext.OpenUrlCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                <Button Style="{StaticResource LinkBtn}" Content="{Binding}" ToolTip="Show page details" VerticalAlignment="Center"
+                        Command="{Binding DataContext.ShowPageCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+            </DockPanel>
+        </DataTemplate>
+
+        <!-- Severity dot + label used in issue lists -->
+        <DataTemplate x:Key="IssueSummaryRow">
+            <Grid Margin="4,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="14"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{Binding Definition.Severity, Converter={StaticResource SeverityBrush}}"/>
+                <TextBlock Grid.Column="1" Text="{Binding Definition.Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0"/>
+                <TextBlock Grid.Column="2" Text="{Binding DeltaText}" Foreground="{Binding DeltaText, Converter={StaticResource DeltaBrush}}"
+                           FontSize="11" VerticalAlignment="Center" Margin="6,0"/>
+                <TextBlock Grid.Column="3" Text="{Binding Count, StringFormat=N0}" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Foreground="{Binding Definition.Severity, Converter={StaticResource SeverityBrush}}"/>
+            </Grid>
+        </DataTemplate>
+
+        <!-- "Nothing loaded yet" placeholder for the results sections -->
+        <DataTemplate x:Key="EmptyState">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="460">
+                <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="46" Foreground="#4A4A58" HorizontalAlignment="Center"/>
+                <TextBlock Text="No audit loaded" Style="{StaticResource H2}" HorizontalAlignment="Center" Margin="0,14,0,6"/>
+                <TextBlock Text="Start a new audit, or open a previous one from History." Style="{StaticResource Muted}" TextAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                    <Button Content="New audit" Style="{StaticResource PrimaryBtn}"
+                            Command="{Binding DataContext.GoToSectionCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="0"/>
+                    <Button Content="History" Style="{StaticResource ToolBtn}"
+                            Command="{Binding DataContext.GoToSectionCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="6"/>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="28"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================== Sidebar ============================== -->
+        <Border Background="{StaticResource BgSidebar}" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="18,20,12,22">
+                    <Border Width="34" Height="34" CornerRadius="8" Background="{StaticResource Accent}">
+                        <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="SEO Audit Studio" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
+                        <TextBlock Text="Site audit &amp; SEO toolkit" FontSize="11" Foreground="{StaticResource TextMuted}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock DockPanel.Dock="Bottom" Margin="20,0,12,14" FontSize="11" Foreground="#5E5E6E" TextWrapping="Wrap"
+                           Text="Audits are saved automatically in History."/>
+
+                <StackPanel>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE710;" Content="New audit" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=0}"/>
+                    <TextBlock Text="AUDIT RESULTS" FontSize="10.5" Foreground="#5E5E6E" Margin="22,16,0,6" FontWeight="SemiBold"/>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE80F;" Content="Dashboard" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=1}"/>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE7BA;" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=2}">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Right" Background="#5A2326" CornerRadius="8" Padding="6,0" Margin="0,0,4,0"
+                                    Visibility="{Binding ErrorCount, Converter={StaticResource HasValueToVis}}">
+                                <TextBlock Text="{Binding ErrorCount}" FontSize="11" Foreground="#FFB3B5"/>
+                            </Border>
+                            <TextBlock Text="Issues"/>
+                        </DockPanel>
+                    </RadioButton>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE8A5;" Content="Crawled pages" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=3}"/>
+                    <TextBlock Text="TOOLS" FontSize="10.5" Foreground="#5E5E6E" Margin="22,16,0,6" FontWeight="SemiBold"/>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xEC4A;" Content="Performance (CWV)" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=4}"/>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE774;" Content="Domain overview" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=5}"/>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE81C;" Content="History" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=6}"/>
+                    <RadioButton Style="{StaticResource NavItem}" Tag="&#xE713;" Content="Settings" GroupName="nav"
+                                 IsChecked="{Binding SelectedSection, Converter={StaticResource IntEqualsToBool}, ConverterParameter=7}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ============================== Content ============================== -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Audit header with export actions (results sections only) -->
+            <Border Background="#1C1C21" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1" Padding="24,14">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HasAudit}" Value="True"/>
+                                    <Condition Binding="{Binding IsResultsSection}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource ToolBtn}" Command="{Binding ContinueAuditCommand}"
+                                ToolTip="Keep the pages already crawled and crawl the rest (links found but not visited yet, or the rest of the URL list)">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Continue"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ToolBtn}" Command="{Binding RerunAuditCommand}" ToolTip="Run the same audit again and compare">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Re-run"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource PrimaryBtn}" Command="{Binding ExportPdfCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xEA90;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="PDF report"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ToolBtn}" Command="{Binding ExportExcelCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Excel"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource ToolBtn}" Command="{Binding ExportPagesCsvCommand}" Content="CSV: pages"/>
+                        <Button Style="{StaticResource ToolBtn}" Command="{Binding ExportIssuesCsvCommand}" Content="CSV: issues" Margin="0"/>
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding AuditTitle}" FontSize="17" FontWeight="SemiBold" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding AuditSubtitle}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Row="1">
+
+                <!-- ============================== 0. New audit ============================== -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=0}">
+                    <StackPanel Margin="32,28" MaxWidth="980" HorizontalAlignment="Left">
+                        <TextBlock Text="New site audit" Style="{StaticResource H1}"/>
+                        <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,20" FontSize="13"
+                                   Text="Crawl a whole website, or test a list of URLs pasted here or imported from a CSV or Excel file. Over 40 technical and on-page SEO checks run on every page, plus site-wide checks for robots.txt, sitemap, HTTPS and SSL."/>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="mode" Content="Crawl a website"
+                                                 IsChecked="{Binding AuditModeIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=0}"/>
+                                    <RadioButton Style="{StaticResource Segment}" GroupName="mode" Content="Audit a URL list (paste, CSV, Excel)"
+                                                 IsChecked="{Binding AuditModeIndex, Converter={StaticResource IntEqualsToBool}, ConverterParameter=1}"/>
+                                </StackPanel>
+
+                                <!-- Crawl mode -->
+                                <StackPanel Visibility="{Binding IsCrawlMode, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="Website address" Style="{StaticResource FieldLabel}"/>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryBtn}" Command="{Binding StartAuditCommand}"
+                                                Padding="22,8" Margin="10,0,0,0" IsDefault="True" Content="Start audit"/>
+                                        <TextBox Text="{Binding StartUrl, UpdateSourceTrigger=PropertyChanged}" FontSize="15" Padding="10,8"/>
+                                    </DockPanel>
+                                    <WrapPanel Margin="0,14,0,0">
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock Text="Max pages" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding Settings.MaxPages}" Width="100"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock Text="Max depth (clicks from start)" Style="{StaticResource FieldLabel}"/>
+                                            <TextBox Text="{Binding Settings.MaxDepth}" Width="100" HorizontalAlignment="Left"/>
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,2">
+                                            <CheckBox Content="Respect robots.txt" IsChecked="{Binding Settings.RespectRobotsTxt}"/>
+                                            <CheckBox Content="Check external links" IsChecked="{Binding Settings.CheckExternalLinks}"/>
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Bottom" Margin="18,0,0,2">
+                                            <CheckBox Content="Include subdomains" IsChecked="{Binding Settings.IncludeSubdomains}"/>
+                                            <Button Style="{StaticResource LinkBtn}" Content="Audit only the URLs in /sitemap.xml" Margin="0,4,0,0"
+                                                    Command="{Binding LoadSitemapAsListCommand}"/>
+                                        </StackPanel>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <!-- URL list mode -->
+                                <StackPanel Visibility="{Binding IsListMode, Converter={StaticResource BoolToVis}}">
+                                    <DockPanel Margin="0,0,0,8">
+                                        <Button DockPanel.Dock="Left" Style="{StaticResource ToolBtn}" Command="{Binding ImportFileCommand}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Import CSV / Excel..."/>
+                                            </StackPanel>
+                                        </Button>
+                                        <TextBlock Text="{Binding ImportedFileName}" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="4,0,12,0"/>
+                                        <TextBlock Text="{Binding UrlListCountText}" Foreground="{StaticResource Accent}" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Right" FontWeight="SemiBold"/>
+                                    </DockPanel>
+                                    <TextBox Text="{Binding UrlListText, UpdateSourceTrigger=PropertyChanged, Delay=400}" AcceptsReturn="True"
+                                             Height="230" VerticalContentAlignment="Top" TextWrapping="NoWrap"
+                                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                             FontFamily="Cascadia Mono, Consolas" FontSize="12.5"/>
+                                    <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,12"
+                                               Text="One URL per line (commas and spaces work too). Bare domains get https:// added. From files, the column headed URL / Link / Address / Website is used, or else the column holding the most URLs."/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{StaticResource PrimaryBtn}" Command="{Binding StartAuditCommand}" Padding="22,8" Content="Start audit"/>
+                                        <CheckBox Content="Check external links" IsChecked="{Binding Settings.CheckExternalLinks}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Progress -->
+                        <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Style="{StaticResource ToolBtn}" Command="{Binding TogglePauseCommand}"
+                                                ToolTip="Pause after the requests in progress finish; Resume carries on from the same place">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding PauseButtonGlyph}" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding PauseButtonText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource DangerBtn}" Command="{Binding StopAuditCommand}" Margin="0"
+                                                ToolTip="Stop and save the pages crawled so far. Continue picks up from there later.">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE71A;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Stop &amp; save"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding ProgressText}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <ProgressBar Margin="0,12,0,8" Value="{Binding ProgressValue}" Maximum="{Binding ProgressMax}"
+                                             IsIndeterminate="{Binding ProgressIndeterminate}"/>
+                                <TextBlock Text="{Binding CurrentUrl}" Style="{StaticResource Muted}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Live log -->
+                        <Border Style="{StaticResource Card}" Margin="0,16,0,0" Visibility="{Binding LiveLog.Count, Converter={StaticResource HasValueToVis}}">
+                            <StackPanel>
+                                <TextBlock Text="Activity" Style="{StaticResource H2}"/>
+                                <ListBox ItemsSource="{Binding LiveLog}" MaxHeight="180" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- What is checked -->
+                        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <TextBlock Text="What the audit checks" Style="{StaticResource H2}"/>
+                                <UniformGrid Columns="3">
+                                    <StackPanel Margin="0,0,16,10">
+                                        <TextBlock Text="Crawlability" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock Style="{StaticResource Muted}" Text="4xx / 5xx pages, failed requests, redirect chains, temporary redirects, robots.txt, incorrect pages in sitemap.xml, soft 404s"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,16,10">
+                                        <TextBlock Text="On-page SEO" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock Style="{StaticResource Muted}" Text="Titles, meta descriptions, H1s (missing, duplicate, length), canonical, noindex, lang, Open Graph, structured data"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,16,10">
+                                        <TextBlock Text="Content &amp; links" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock Style="{StaticResource Muted}" Text="Duplicate content, thin pages, text/HTML ratio, broken links and images, hreflang conflicts and incorrect hreflang links, nofollow, top keywords"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,16,10">
+                                        <TextBlock Text="Performance" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock Style="{StaticResource Muted}" Text="Response time, page size, compression; Core Web Vitals via Google PageSpeed Insights"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,16,10">
+                                        <TextBlock Text="Security" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock Style="{StaticResource Muted}" Text="HTTPS, HTTP→HTTPS redirect, mixed content, SSL certificate validity and expiry, HSTS"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,16,10">
+                                        <TextBlock Text="Reports" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock Style="{StaticResource Muted}" Text="Site Health score, thematic reports, change since last audit; export to PDF, Excel and CSV"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ============================== 1. Dashboard ============================== -->
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=1}">
+                    <ContentControl ContentTemplate="{StaticResource EmptyState}" Content="{Binding}"
+                                    Visibility="{Binding CurrentAudit, Converter={StaticResource NoValueToVis}}"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding CurrentAudit, Converter={StaticResource HasValueToVis}}">
+                        <StackPanel Margin="24,20">
+                            <Border Background="#2B2416" BorderBrush="#6B5520" BorderThickness="1" CornerRadius="6" Padding="14,10" Margin="0,0,0,12"
+                                    Visibility="{Binding ContinueBannerText, Converter={StaticResource HasValueToVis}}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryBtn}" Command="{Binding ContinueAuditCommand}" Margin="0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE768;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Continue audit"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock Text="{Binding ContinueBannerText}" Foreground="#F5D58A" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"/>
+                                </DockPanel>
+                            </Border>
+                            <!-- Headline numbers -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.3*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Style="{StaticResource Card}">
+                                    <DockPanel>
+                                        <ctl:ScoreRing DockPanel.Dock="Left" Value="{Binding SiteHealth}" Width="104" Height="104" Thickness="11"/>
+                                        <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Site Health" FontSize="15" FontWeight="SemiBold" Foreground="White"/>
+                                            <TextBlock Text="{Binding HealthDeltaText}" FontWeight="SemiBold" Margin="0,4,0,0"
+                                                       Foreground="{Binding HealthDeltaText, Converter={StaticResource DeltaBrush}, ConverterParameter=invert}"/>
+                                            <TextBlock Text="{Binding ComparedWithText}" Style="{StaticResource Muted}" FontSize="11" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+
+                                <Button Grid.Column="2" Style="{StaticResource CardBtn}" Command="{Binding GoToSectionCommand}" CommandParameter="3">
+                                    <StackPanel>
+                                        <TextBlock Text="Crawled pages" Style="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding PagesCrawled, StringFormat=N0}" Style="{StaticResource BigNumber}" Foreground="White"/>
+                                        <TextBlock Style="{StaticResource Muted}" FontSize="11">
+                                            <Run Text="Indexable:"/> <Run Text="{Binding IndexablePagesText, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="4" Style="{StaticResource CardBtn}" Command="{Binding ShowIssuesBySeverityCommand}" CommandParameter="1">
+                                    <StackPanel>
+                                        <TextBlock Text="Errors" Style="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding ErrorCount, StringFormat=N0}" Style="{StaticResource BigNumber}" Foreground="{StaticResource ErrorBrush}"/>
+                                        <TextBlock Text="{Binding ErrorDeltaText}" FontSize="11" Foreground="{Binding ErrorDeltaText, Converter={StaticResource DeltaBrush}}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="6" Style="{StaticResource CardBtn}" Command="{Binding ShowIssuesBySeverityCommand}" CommandParameter="2">
+                                    <StackPanel>
+                                        <TextBlock Text="Warnings" Style="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding WarningCount, StringFormat=N0}" Style="{StaticResource BigNumber}" Foreground="{StaticResource WarningBrush}"/>
+                                        <TextBlock Text="{Binding WarningDeltaText}" FontSize="11" Foreground="{Binding WarningDeltaText, Converter={StaticResource DeltaBrush}}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Grid.Column="8" Style="{StaticResource CardBtn}" Command="{Binding ShowIssuesBySeverityCommand}" CommandParameter="3">
+                                    <StackPanel>
+                                        <TextBlock Text="Notices" Style="{StaticResource Muted}"/>
+                                        <TextBlock Text="{Binding NoticeCount, StringFormat=N0}" Style="{StaticResource BigNumber}" Foreground="{StaticResource NoticeBrush}"/>
+                                        <TextBlock Text="{Binding NoticeDeltaText}" FontSize="11" Foreground="{Binding NoticeDeltaText, Converter={StaticResource DeltaBrush}}"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <!-- Thematic reports + status codes -->
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1.6*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="Thematic reports" Style="{StaticResource H2}"/>
+                                        <TextBlock Text="Share of crawled pages with no errors or warnings in each area." Style="{StaticResource Muted}" Margin="0,-6,0,10"/>
+                                        <ItemsControl ItemsSource="{Binding ThematicReports}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><UniformGrid Columns="6"/></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Margin="4,6" HorizontalAlignment="Center">
+                                                        <ctl:ScoreRing Value="{Binding Score}" Width="62" Height="62" Thickness="6"/>
+                                                        <TextBlock Text="{Binding Category}" HorizontalAlignment="Center" Margin="0,6,0,0" FontWeight="SemiBold"/>
+                                                        <TextBlock HorizontalAlignment="Center" Style="{StaticResource Muted}" FontSize="11">
+                                                            <Run Text="{Binding PagesAffected, Mode=OneWay}"/> <Run Text="pages affected"/>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="HTTP status codes" Style="{StaticResource H2}"/>
+                                        <ItemsControl ItemsSource="{Binding StatusBuckets}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="118"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="50"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Label}" Style="{StaticResource Muted}" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="1" Height="12" CornerRadius="3" HorizontalAlignment="Left"
+                                                                Background="{Binding Color, Converter={StaticResource HexBrush}}"
+                                                                Width="{Binding Ratio, Converter={StaticResource RatioToWidth}, ConverterParameter=200}"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Count, StringFormat=N0}" TextAlignment="Right" FontWeight="SemiBold"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,0">
+                                            <Run Text="Average response time:"/> <Run Text="{Binding AverageResponseText, Mode=OneWay}" Foreground="White"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <!-- Top issues + site checks -->
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource LinkBtn}" Content="View all issues"
+                                                    Command="{Binding ShowIssuesBySeverityCommand}" CommandParameter="0"/>
+                                            <TextBlock Text="Top issues" Style="{StaticResource H2}"/>
+                                        </DockPanel>
+                                        <TextBlock Text="No errors or warnings found. 🎉" Style="{StaticResource Muted}"
+                                                   Visibility="{Binding TopIssues.Count, Converter={StaticResource NoValueToVis}}"/>
+                                        <ItemsControl ItemsSource="{Binding TopIssues}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Button Style="{StaticResource RowBtn}" ContentTemplate="{StaticResource IssueSummaryRow}" Content="{Binding}"
+                                                            Command="{Binding DataContext.ShowIssueCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                            CommandParameter="{Binding}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="Site-wide checks" Style="{StaticResource H2}"/>
+                                        <ItemsControl ItemsSource="{Binding SiteChecks}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="24"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="0,2,0,0">
+                                                            <TextBlock.Foreground>
+                                                                <MultiBinding Converter="{StaticResource PassedBrush}">
+                                                                    <Binding Path="Passed"/>
+                                                                    <Binding Path="Severity"/>
+                                                                </MultiBinding>
+                                                            </TextBlock.Foreground>
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="&#xE711;"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Passed}" Value="True">
+                                                                            <Setter Property="Text" Value="&#xE73E;"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <StackPanel Grid.Column="1">
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ============================== 2. Issues ============================== -->
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=2}">
+                    <ContentControl ContentTemplate="{StaticResource EmptyState}" Content="{Binding}"
+                                    Visibility="{Binding CurrentAudit, Converter={StaticResource NoValueToVis}}"/>
+                    <Grid Margin="24,16" Visibility="{Binding CurrentAudit, Converter={StaticResource HasValueToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="420" MinWidth="300"/>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                                <RadioButton Style="{StaticResource Segment}" Content="All" GroupName="sev"
+                                             IsChecked="{Binding IssueSeverityFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=0}"/>
+                                <RadioButton Style="{StaticResource Segment}" GroupName="sev"
+                                             IsChecked="{Binding IssueSeverityFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=1}">
+                                    <TextBlock><Run Text="Errors "/><Run Text="{Binding ErrorCount, Mode=OneWay}" Foreground="#FF8A8D"/></TextBlock>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource Segment}" GroupName="sev"
+                                             IsChecked="{Binding IssueSeverityFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=2}">
+                                    <TextBlock><Run Text="Warnings "/><Run Text="{Binding WarningCount, Mode=OneWay}" Foreground="#FFC08A"/></TextBlock>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource Segment}" GroupName="sev"
+                                             IsChecked="{Binding IssueSeverityFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=3}">
+                                    <TextBlock><Run Text="Notices "/><Run Text="{Binding NoticeCount, Mode=OneWay}" Foreground="#8AB8FF"/></TextBlock>
+                                </RadioButton>
+                            </StackPanel>
+                            <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                                <TextBox Text="{Binding IssueSearch, UpdateSourceTrigger=PropertyChanged}"/>
+                                <TextBlock Text="Filter issues..." Foreground="#5E5E6E" Margin="10,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                           Visibility="{Binding IssueSearch, Converter={StaticResource NoValueToVis}}"/>
+                            </Grid>
+                            <Border Style="{StaticResource Card}" Padding="6">
+                                <ListBox ItemsSource="{Binding IssuesView}" SelectedItem="{Binding SelectedIssue}"
+                                         ItemTemplate="{StaticResource IssueSummaryRow}">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                                            <Setter Property="Padding" Value="6,8"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                </ListBox>
+                            </Border>
+                        </DockPanel>
+
+                        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <Grid>
+                                <TextBlock Text="Select an issue to see the affected pages." Style="{StaticResource Muted}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="{Binding SelectedIssue, Converter={StaticResource NoValueToVis}}"/>
+                                <DockPanel Visibility="{Binding SelectedIssue, Converter={StaticResource HasValueToVis}}">
+                                    <StackPanel DockPanel.Dock="Top">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border CornerRadius="3" Padding="8,2" VerticalAlignment="Center"
+                                                    Background="{Binding SelectedIssue.Definition.Severity, Converter={StaticResource SeverityBrush}}">
+                                                <TextBlock Text="{Binding SelectedIssue.Definition.Severity}" Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding SelectedIssue.Definition.Category}" Style="{StaticResource Muted}" Margin="10,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding SelectedIssue.Definition.Title}" Style="{StaticResource H1}" FontSize="19" Margin="0,8,0,8" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding SelectedIssue.Definition.Description}" TextWrapping="Wrap" Foreground="#C8C8D2"/>
+                                        <Border Background="#16302B" CornerRadius="4" Padding="12,10" Margin="0,12,0,14">
+                                            <StackPanel>
+                                                <TextBlock Text="How to fix" FontWeight="SemiBold" Foreground="#5FE0C4"/>
+                                                <TextBlock Text="{Binding SelectedIssue.Definition.HowToFix}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button Style="{StaticResource ToolBtn}" Command="{Binding CopyAffectedUrlsCommand}"
+                                                        ToolTip="Copy every URL in this list, one per line">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Copy all URLs"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource ToolBtn}" Margin="0" Content="Export affected pages"
+                                                        Command="{Binding ExportSelectedIssueCommand}"/>
+                                            </StackPanel>
+                                            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding AffectedCountText}"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                    <Grid>
+                                        <!-- Broken links / images / hreflang: one row per broken URL -->
+                                        <DataGrid ItemsSource="{Binding AffectedRows}" Visibility="{Binding SelectedIssueHasTargets, Converter={StaticResource BoolToVis}}">
+                                            <DataGrid.Columns>
+                                                <DataGridTemplateColumn Header="Broken URL" Width="3*" SortMemberPath="TargetUrl">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <ContentControl Content="{Binding TargetUrl}" ContentTemplate="{StaticResource UrlCell}" Focusable="False"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Status / reason" Binding="{Binding Detail}" Width="1.3*"/>
+                                                <DataGridTemplateColumn Header="Found on page" Width="3*" SortMemberPath="PageUrl">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <ContentControl Content="{Binding PageUrl}" ContentTemplate="{StaticResource PageUrlCell}" Focusable="False"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <!-- 4XX / 5XX / failed / redirected pages: one row per page that links to them -->
+                                        <DataGrid ItemsSource="{Binding AffectedRows}" Visibility="{Binding SelectedIssueHasSources, Converter={StaticResource BoolToVis}}">
+                                            <DataGrid.Columns>
+                                                <DataGridTemplateColumn Header="URL" Width="3*" SortMemberPath="PageUrl">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <ContentControl Content="{Binding PageUrl}" ContentTemplate="{StaticResource UrlCell}" Focusable="False"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Status" Binding="{Binding Detail}" Width="80"/>
+                                                <DataGridTemplateColumn Header="Linked from page (fix the link here)" Width="3*" SortMemberPath="SourceUrl">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Grid>
+                                                                <ContentControl Content="{Binding SourceUrl}" ContentTemplate="{StaticResource PageUrlCell}" Focusable="False"
+                                                                                Visibility="{Binding SourceUrl, Converter={StaticResource HasValueToVis}}"/>
+                                                                <TextBlock Text="—" Foreground="#6E6E7E" VerticalAlignment="Center"
+                                                                           Visibility="{Binding SourceUrl, Converter={StaticResource NoValueToVis}}"/>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTemplateColumn Header="Anchor text" Width="1.4*" SortMemberPath="SourceNote">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding SourceNote}" ToolTip="{Binding SourceNote}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding SourceUrl}" Value="">
+                                                                                <Setter Property="Foreground" Value="#8E8E9E"/>
+                                                                                <Setter Property="FontStyle" Value="Italic"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <!-- Other issues: one row per page -->
+                                        <DataGrid ItemsSource="{Binding AffectedRows}" Visibility="{Binding SelectedIssueIsPlain, Converter={StaticResource BoolToVis}}">
+                                            <DataGrid.Columns>
+                                                <DataGridTemplateColumn Header="URL" Width="3*" SortMemberPath="PageUrl">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <ContentControl Content="{Binding PageUrl}" ContentTemplate="{StaticResource PageUrlCell}" Focusable="False"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Detail" Binding="{Binding Detail}" Width="2*"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </DockPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- ============================== 3. Crawled pages ============================== -->
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=3}">
+                    <ContentControl ContentTemplate="{StaticResource EmptyState}" Content="{Binding}"
+                                    Visibility="{Binding CurrentAudit, Converter={StaticResource NoValueToVis}}"/>
+                    <Grid Margin="24,16" Visibility="{Binding CurrentAudit, Converter={StaticResource HasValueToVis}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition Width="540" MinWidth="360"/>
+                        </Grid.ColumnDefinitions>
+
+                        <DockPanel Grid.ColumnSpan="3" Margin="0,0,0,10">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding PagesCountText}" Style="{StaticResource Muted}" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton Style="{StaticResource Segment}" Content="All" GroupName="pf"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=0}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="With errors" GroupName="pf"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=1}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="With warnings" GroupName="pf"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=2}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="2xx" GroupName="pf"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=3}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="Redirected" GroupName="pf"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=4}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="Broken / failed" GroupName="pf"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=5}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="Not in navigation" GroupName="pf" ToolTip="Not linked from any menu, header or footer"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=6}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="Orphan / sitemap only" GroupName="pf" ToolTip="No crawled page links here: candidates to remove or to link"
+                                             IsChecked="{Binding PageFilter, Converter={StaticResource IntEqualsToBool}, ConverterParameter=7}"/>
+                                <Grid Width="220" Margin="8,0,0,0">
+                                    <TextBox Text="{Binding PageSearch, UpdateSourceTrigger=PropertyChanged, Delay=250}"/>
+                                    <TextBlock Text="Search URL or title..." Foreground="#5E5E6E" Margin="10,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                               Visibility="{Binding PageSearch, Converter={StaticResource NoValueToVis}}"/>
+                                </Grid>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding PagesView}" SelectedItem="{Binding SelectedPage}" CanUserSortColumns="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="3*" MinWidth="220"/>
+                                <DataGridTemplateColumn Header="Status" Width="62" SortMemberPath="StatusCode">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold" Foreground="{Binding StatusCode, Converter={StaticResource StatusBrush}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Score" Width="58" SortMemberPath="Score">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Score}" FontWeight="SemiBold" Foreground="{Binding Score, Converter={StaticResource ScoreBrush}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Errors" Binding="{Binding ErrorCount}" Width="58"/>
+                                <DataGridTextColumn Header="Warn." Binding="{Binding WarningCount}" Width="54"/>
+                                <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="2*"/>
+                                <DataGridTextColumn Header="Found via" Binding="{Binding OriginSummary}" Width="1.4*" MinWidth="140"/>
+                                <DataGridTextColumn Header="ms" Binding="{Binding ResponseTimeMs, StringFormat=N0}" Width="60"/>
+                                <DataGridTextColumn Header="Words" Binding="{Binding WordCount, StringFormat=N0}" Width="62"/>
+                                <DataGridTextColumn Header="Depth" Binding="{Binding Depth}" Width="52"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <GridSplitter Grid.Row="1" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+                        <!-- Page detail -->
+                        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource Card}" Padding="14">
+                            <Grid>
+                                <TextBlock Text="Select a page." Style="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="{Binding SelectedPage, Converter={StaticResource NoValueToVis}}"/>
+                                <DockPanel Visibility="{Binding SelectedPage, Converter={StaticResource HasValueToVis}}">
+                                    <StackPanel DockPanel.Dock="Top">
+                                        <DockPanel>
+                                            <ctl:ScoreRing DockPanel.Dock="Right" Value="{Binding SelectedPage.Score}" Suffix="" Width="54" Height="54" Thickness="5"/>
+                                            <StackPanel>
+                                                <ContentControl Content="{Binding SelectedPage.Url}" ContentTemplate="{StaticResource UrlCell}" Focusable="False"/>
+                                                <TextBlock Margin="0,4,0,0" Style="{StaticResource Muted}">
+                                                    <Run Text="HTTP"/> <Run Text="{Binding SelectedPage.StatusText, Mode=OneWay}" Foreground="White"/>
+                                                    <Run Text="  ·  "/><Run Text="{Binding SelectedPage.ResponseTimeMs, Mode=OneWay, StringFormat=N0}" Foreground="White"/><Run Text=" ms"/>
+                                                    <Run Text="  ·  "/><Run Text="{Binding SelectedPage.SizeText, Mode=OneWay}" Foreground="White"/>
+                                                    <Run Text="  ·  depth"/> <Run Text="{Binding SelectedPage.Depth, Mode=OneWay}" Foreground="White"/>
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding SelectedPage.Error}" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap"
+                                                           Visibility="{Binding SelectedPage.Error, Converter={StaticResource HasValueToVis}}"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </StackPanel>
+                                    <TabControl Margin="0,10,0,0">
+                                        <TabItem Header="Issues">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Text="No issues on this page." Style="{StaticResource Muted}"
+                                                               Visibility="{Binding SelectedPage.Issues.Count, Converter={StaticResource NoValueToVis}}"/>
+                                                    <ItemsControl ItemsSource="{Binding SelectedPageIssues}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Border BorderBrush="#2D2D37" BorderThickness="0,0,0,1" Padding="0,7">
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="14"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <Ellipse Width="8" Height="8" VerticalAlignment="Top" Margin="0,5,0,0"
+                                                                                 Fill="{Binding Severity, Converter={StaticResource SeverityBrush}}"/>
+                                                                        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+                                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                                                            <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}"
+                                                                                       Visibility="{Binding Detail, Converter={StaticResource HasValueToVis}}"/>
+                                                                            <TextBlock Text="{Binding HowToFix}" Foreground="#7FD8C4" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                                            <ItemsControl ItemsSource="{Binding Targets}" Margin="0,4,0,0">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <Border Background="#1A1A20" CornerRadius="3" Padding="6,3" Margin="0,2">
+                                                                                            <StackPanel>
+                                                                                                <ContentControl Content="{Binding Url}" ContentTemplate="{StaticResource UrlCell}" Focusable="False"/>
+                                                                                                <TextBlock Text="{Binding Reason}" FontSize="11" Foreground="#FF8A8D" TextWrapping="Wrap"/>
+                                                                                            </StackPanel>
+                                                                                        </Border>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                            <ItemsControl ItemsSource="{Binding LinkedFrom}" Margin="0,4,0,0">
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <Border Background="#1A1A20" CornerRadius="3" Padding="6,3" Margin="0,2">
+                                                                                            <StackPanel>
+                                                                                                <ContentControl Content="{Binding Url}" ContentTemplate="{StaticResource PageUrlCell}" Focusable="False"/>
+                                                                                                <TextBlock FontSize="11" Foreground="#9A9AAA" TextWrapping="Wrap">
+                                                                                                    <Run Text="anchor:"/> <Run Text="{Binding Reason, Mode=OneWay}" Foreground="#C8C8D2"/>
+                                                                                                </TextBlock>
+                                                                                            </StackPanel>
+                                                                                        </Border>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                            <TextBlock Text="{Binding FoundVia}" FontSize="11" FontStyle="Italic" Foreground="#9A9AAA" TextWrapping="Wrap" Margin="0,2,0,0"
+                                                                                       Visibility="{Binding FoundVia, Converter={StaticResource HasValueToVis}}"/>
+                                                                        </StackPanel>
+                                                                    </Grid>
+                                                                </Border>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </TabItem>
+                                        <TabItem Header="Found via">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel DataContext="{Binding SelectedPage.Origin}">
+                                                    <!-- Verdict -->
+                                                    <Border CornerRadius="5" Padding="12,10" Margin="0,0,0,12" BorderThickness="1">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#16302B"/>
+                                                                <Setter Property="BorderBrush" Value="#1F5A4D"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Kind}" Value="Orphan">
+                                                                        <Setter Property="Background" Value="#3A1F22"/>
+                                                                        <Setter Property="BorderBrush" Value="#7A2E32"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Kind}" Value="SitemapOnly">
+                                                                        <Setter Property="Background" Value="#3A2A16"/>
+                                                                        <Setter Property="BorderBrush" Value="#7A5520"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Kind}" Value="ContentOnly">
+                                                                        <Setter Property="Background" Value="#2E2C16"/>
+                                                                        <Setter Property="BorderBrush" Value="#6B6420"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Kind}" Value="LinkedUnknownPlace">
+                                                                        <Setter Property="Background" Value="#1E2433"/>
+                                                                        <Setter Property="BorderBrush" Value="#34405C"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Summary}" FontWeight="SemiBold" FontSize="14" Foreground="White"/>
+                                                            <TextBlock Text="{Binding Explanation}" TextWrapping="Wrap" Foreground="#D0D0DA" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <!-- Facts -->
+                                                    <Grid Margin="0,0,0,12">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock Text="In sitemap.xml" Foreground="#8E8E9E" Margin="0,2,16,2"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding SitemapText}" Margin="0,2"/>
+                                                        <TextBlock Grid.Row="1" Text="In site navigation" Foreground="#8E8E9E" Margin="0,2,16,2" ToolTip="Menu, header, footer, breadcrumb or sidebar"/>
+                                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding NavigationText}" Margin="0,2"/>
+                                                        <TextBlock Grid.Row="2" Text="Linked from content" Foreground="#8E8E9E" Margin="0,2,16,2"/>
+                                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ContentLinks, StringFormat={}{0} page(s)}" Margin="0,2"/>
+                                                        <TextBlock Grid.Row="3" Text="Clicks from start page" Foreground="#8E8E9E" Margin="0,2,16,2"/>
+                                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ClickDepthText}" Margin="0,2"/>
+                                                        <TextBlock Grid.Row="4" Text="Crawler found it via" Foreground="#8E8E9E" Margin="0,2,16,2"/>
+                                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding CrawlerFoundVia}" TextWrapping="Wrap" Margin="0,2"/>
+                                                    </Grid>
+                                                    <TextBlock Style="{StaticResource Muted}" FontSize="11" Margin="0,-6,0,12"
+                                                               Visibility="{Binding LocationsKnown, Converter={StaticResource NoValueToVis}}"
+                                                               Text="* This audit was made before link positions were recorded. Run it again (or a new audit) to tell menu, footer and content links apart."/>
+
+                                                    <!-- Click path -->
+                                                    <TextBlock Text="Click path from the start page" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBlock Text="Visitors cannot reach this page by clicking from the start page (no chain of links leads here)." Style="{StaticResource Muted}"
+                                                               Visibility="{Binding ClickPath.Count, Converter={StaticResource NoValueToVis}}" Margin="0,0,0,10"/>
+                                                    <ItemsControl ItemsSource="{Binding ClickPath}" Margin="0,0,0,12">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid Margin="0,2">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="26"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Border Width="20" Height="20" CornerRadius="10" Background="#103B35" VerticalAlignment="Top" Margin="0,2,0,0">
+                                                                        <TextBlock Text="{Binding Number}" FontSize="11" Foreground="#5FE0C4" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                    </Border>
+                                                                    <StackPanel Grid.Column="1">
+                                                                        <TextBlock Text="{Binding Via}" FontSize="11" Foreground="#9A9AAA" TextTrimming="CharacterEllipsis"/>
+                                                                        <ContentControl Content="{Binding Url}" ContentTemplate="{StaticResource PageUrlCell}" Focusable="False"/>
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+
+                                                    <!-- Every page linking here -->
+                                                    <TextBlock FontWeight="SemiBold" Margin="0,0,0,4">
+                                                        <Run Text="Pages linking here:"/> <Run Text="{Binding Inlinks.Count, Mode=OneWay}"/>
+                                                    </TextBlock>
+                                                    <TextBlock Text="No crawled page links here." Style="{StaticResource Muted}"
+                                                               Visibility="{Binding Inlinks.Count, Converter={StaticResource NoValueToVis}}"/>
+                                                    <DataGrid ItemsSource="{Binding Inlinks}" MaxHeight="360" CanUserSortColumns="True"
+                                                              Visibility="{Binding Inlinks.Count, Converter={StaticResource HasValueToVis}}">
+                                                        <DataGrid.Columns>
+                                                            <DataGridTemplateColumn Header="Linked from page" Width="2*" SortMemberPath="Url">
+                                                                <DataGridTemplateColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <ContentControl Content="{Binding Url}" ContentTemplate="{StaticResource PageUrlCell}" Focusable="False"/>
+                                                                    </DataTemplate>
+                                                                </DataGridTemplateColumn.CellTemplate>
+                                                            </DataGridTemplateColumn>
+                                                            <DataGridTextColumn Header="Where" Binding="{Binding Location}" Width="80"/>
+                                                            <DataGridTextColumn Header="Anchor text" Binding="{Binding Anchor}" Width="*"/>
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </TabItem>
+                                        <TabItem Header="On-page">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource FieldLabel}"><Run Text="Title ("/><Run Text="{Binding SelectedPage.Title.Length, Mode=OneWay}"/><Run Text=" chars)"/></TextBlock>
+                                                    <TextBox Text="{Binding SelectedPage.Title, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                    <TextBlock Style="{StaticResource FieldLabel}"><Run Text="Meta description ("/><Run Text="{Binding SelectedPage.MetaDescription.Length, Mode=OneWay}"/><Run Text=" chars)"/></TextBlock>
+                                                    <TextBox Text="{Binding SelectedPage.MetaDescription, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                    <TextBlock Text="H1" Style="{StaticResource FieldLabel}"/>
+                                                    <TextBox Text="{Binding SelectedPage.H1Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                    <TextBlock Text="Canonical" Style="{StaticResource FieldLabel}"/>
+                                                    <TextBox Text="{Binding SelectedPage.Canonical, Mode=OneWay}" IsReadOnly="True" Margin="0,0,0,10"/>
+                                                    <UniformGrid Columns="2">
+                                                        <TextBlock Margin="0,3"><Run Text="Words: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.WordCount, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Text/HTML: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.TextToHtmlRatio, Mode=OneWay}"/><Run Text="%"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Images: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.ImageCount, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Missing alt: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.ImagesMissingAlt, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Internal links: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.InternalLinkCount, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="External links: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.ExternalLinkCount, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Lang: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.Lang, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Robots: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.MetaRobots, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Viewport: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.HasViewport, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Open Graph: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.HasOpenGraph, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Structured data: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.HasStructuredData, Mode=OneWay}"/></TextBlock>
+                                                        <TextBlock Margin="0,3"><Run Text="Compression: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPage.ContentEncoding, Mode=OneWay}"/></TextBlock>
+                                                    </UniformGrid>
+                                                    <TextBlock Text="H2 headings" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"/>
+                                                    <ItemsControl ItemsSource="{Binding SelectedPage.H2}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate><TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" Margin="0,1"/></DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <TextBlock Text="Redirects" Style="{StaticResource FieldLabel}" Margin="0,10,0,4"
+                                                               Visibility="{Binding SelectedPage.RedirectChain.Count, Converter={StaticResource HasValueToVis}}"/>
+                                                    <ItemsControl ItemsSource="{Binding SelectedPage.RedirectChain}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate><TextBlock Text="{Binding StringFormat='→ {0}'}" TextWrapping="Wrap" Margin="0,1"/></DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </TabItem>
+                                        <TabItem Header="Keywords">
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" Margin="0,0,0,8"
+                                                           Text="Most frequent words and phrases in the visible text (stop words removed, English and Arabic)."/>
+                                                <DataGrid ItemsSource="{Binding SelectedPage.TopKeywords}">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Keyword" Binding="{Binding Keyword}" Width="*"/>
+                                                        <DataGridTextColumn Header="Count" Binding="{Binding Count}" Width="60"/>
+                                                        <DataGridTextColumn Header="Density %" Binding="{Binding Density}" Width="80"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </DockPanel>
+                                        </TabItem>
+                                        <TabItem Header="Links">
+                                            <DataGrid ItemsSource="{Binding SelectedPage.Links}">
+                                                <DataGrid.Columns>
+                                                    <DataGridTemplateColumn Header="URL" Width="2*" SortMemberPath="Url"><DataGridTemplateColumn.CellTemplate><DataTemplate><ContentControl Content="{Binding Url}" ContentTemplate="{StaticResource UrlCell}" Focusable="False"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                                    <DataGridTextColumn Header="Anchor" Binding="{Binding Text}" Width="*"/>
+                                                    <DataGridTemplateColumn Header="Status" Width="56" SortMemberPath="StatusCode">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding StatusCode}" Foreground="{Binding StatusCode, Converter={StaticResource StatusBrush}}"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridCheckBoxColumn Header="Int." Binding="{Binding IsInternal}" Width="40"/>
+                                                    <DataGridTextColumn Header="Error" Binding="{Binding Error}" Width="*"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </TabItem>
+                                        <TabItem Header="Images">
+                                            <DataGrid ItemsSource="{Binding SelectedPage.Images}">
+                                                <DataGrid.Columns>
+                                                    <DataGridTemplateColumn Header="Image" Width="2*">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <ContentControl Content="{Binding Url}" ContentTemplate="{StaticResource UrlCell}" Focusable="False"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridTextColumn Header="Alt" Binding="{Binding Alt}" Width="*"/>
+                                                    <DataGridTemplateColumn Header="Status" Width="56" SortMemberPath="StatusCode">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding StatusCode}" Foreground="{Binding StatusCode, Converter={StaticResource StatusBrush}}"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridCheckBoxColumn Header="Alt?" Binding="{Binding HasAlt}" Width="40"/>
+                                                    <DataGridTextColumn Header="Error" Binding="{Binding Error}" Width="*"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </TabItem>
+                                        <TabItem Header="Hreflang">
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" Margin="0,0,0,8">
+                                                    <Run Text="In sitemap.xml:"/> <Run Text="{Binding SelectedPage.InSitemap, Mode=OneWay}" Foreground="White"/>
+                                                    <Run Text="   ·   html lang:"/> <Run Text="{Binding SelectedPage.Lang, Mode=OneWay}" Foreground="White"/>
+                                                </TextBlock>
+                                                <Grid>
+                                                    <TextBlock Text="This page declares no hreflang alternates." Style="{StaticResource Muted}"
+                                                               Visibility="{Binding SelectedPage.Hreflangs.Count, Converter={StaticResource NoValueToVis}}"/>
+                                                    <DataGrid ItemsSource="{Binding SelectedPage.Hreflangs}"
+                                                              Visibility="{Binding SelectedPage.Hreflangs.Count, Converter={StaticResource HasValueToVis}}">
+                                                        <DataGrid.Columns>
+                                                            <DataGridTextColumn Header="hreflang" Binding="{Binding Lang}" Width="80"/>
+                                                            <DataGridTemplateColumn Header="Alternate URL" Width="*" SortMemberPath="Url"><DataGridTemplateColumn.CellTemplate><DataTemplate><ContentControl Content="{Binding Url}" ContentTemplate="{StaticResource UrlCell}" Focusable="False"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                                            <DataGridTemplateColumn Header="Status" Width="56" SortMemberPath="StatusCode">
+                                                                <DataGridTemplateColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBlock Text="{Binding StatusCode}" Foreground="{Binding StatusCode, Converter={StaticResource StatusBrush}}"/>
+                                                                    </DataTemplate>
+                                                                </DataGridTemplateColumn.CellTemplate>
+                                                            </DataGridTemplateColumn>
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </Grid>
+                                            </DockPanel>
+                                        </TabItem>
+                                    </TabControl>
+                                </DockPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- ============================== 4. Performance ============================== -->
+                <Grid Margin="24,16" Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=4}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Core Web Vitals &amp; page speed" Style="{StaticResource H2}"/>
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,-6,0,12"
+                                       Text="Runs Google PageSpeed Insights (Lighthouse lab test plus real-user Chrome data when Google has it). Works without a key at a low rate limit; add a free API key in Settings for regular use."/>
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0">
+                                    <RadioButton Style="{StaticResource Segment}" Content="Mobile" GroupName="strat" VerticalAlignment="Center"
+                                                 IsChecked="{Binding PageSpeedStrategy, Converter={StaticResource IntEqualsToBool}, ConverterParameter=0}"/>
+                                    <RadioButton Style="{StaticResource Segment}" Content="Desktop" GroupName="strat" VerticalAlignment="Center"
+                                                 IsChecked="{Binding PageSpeedStrategy, Converter={StaticResource IntEqualsToBool}, ConverterParameter=1}"/>
+                                    <RadioButton Style="{StaticResource Segment}" Content="Both" GroupName="strat" VerticalAlignment="Center"
+                                                 IsChecked="{Binding PageSpeedStrategy, Converter={StaticResource IntEqualsToBool}, ConverterParameter=2}"/>
+                                    <Button Style="{StaticResource PrimaryBtn}" Command="{Binding RunPageSpeedCommand}" Content="Run test" Margin="8,0,8,0"/>
+                                    <Button Style="{StaticResource ToolBtn}" Command="{Binding RunPageSpeedTopPagesCommand}" Content="Test top 5 pages of audit"/>
+                                    <Button Style="{StaticResource DangerBtn}" Command="{Binding CancelToolCommand}" Content="Cancel" Margin="0"/>
+                                </StackPanel>
+                                <TextBox Text="{Binding PageSpeedUrl, UpdateSourceTrigger=PropertyChanged}"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding ToolStatus}" Style="{StaticResource Muted}" Margin="0,8,0,0"
+                                       Visibility="{Binding ToolStatus, Converter={StaticResource HasValueToVis}}"/>
+                            <ProgressBar IsIndeterminate="True" Margin="0,8,0,0" Visibility="{Binding IsToolBusy, Converter={StaticResource BoolToVis}}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1" Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="1.1*"/>
+                        </Grid.ColumnDefinitions>
+                        <DataGrid ItemsSource="{Binding PageSpeedResults}" SelectedItem="{Binding SelectedPageSpeed}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="*"/>
+                                <DataGridTextColumn Header="Device" Binding="{Binding Strategy}" Width="64"/>
+                                <DataGridTemplateColumn Header="Perf." Width="50" SortMemberPath="PerformanceScore">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding PerformanceScore}" FontWeight="SemiBold" Foreground="{Binding PerformanceScore, Converter={StaticResource ScoreBrush}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="LCP" Binding="{Binding Lcp}" Width="62"/>
+                                <DataGridTextColumn Header="CLS" Binding="{Binding Cls}" Width="54"/>
+                                <DataGridTextColumn Header="TBT" Binding="{Binding Tbt}" Width="64"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <Grid>
+                                <TextBlock Text="Run a test, then select a result to see its details." Style="{StaticResource Muted}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="{Binding SelectedPageSpeed, Converter={StaticResource NoValueToVis}}"/>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="{Binding SelectedPageSpeed, Converter={StaticResource HasValueToVis}}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding SelectedPageSpeed.Url}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Style="{StaticResource Muted}">
+                                            <Run Text="{Binding SelectedPageSpeed.Strategy, Mode=OneWay}"/> <Run Text="·"/>
+                                            <Run Text="{Binding SelectedPageSpeed.TestedAt, Mode=OneWay, StringFormat='dd MMM yyyy HH:mm'}"/>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding SelectedPageSpeed.Error}" Foreground="{StaticResource ErrorBrush}" TextWrapping="Wrap" Margin="0,8,0,0"
+                                                   Visibility="{Binding SelectedPageSpeed.Error, Converter={StaticResource HasValueToVis}}"/>
+                                        <UniformGrid Columns="4" Margin="0,14,0,10">
+                                            <StackPanel HorizontalAlignment="Center">
+                                                <ctl:ScoreRing Value="{Binding SelectedPageSpeed.PerformanceScore, TargetNullValue=0}" Suffix="" Width="70" Height="70" Thickness="6"/>
+                                                <TextBlock Text="Performance" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel HorizontalAlignment="Center">
+                                                <ctl:ScoreRing Value="{Binding SelectedPageSpeed.AccessibilityScore, TargetNullValue=0}" Suffix="" Width="70" Height="70" Thickness="6"/>
+                                                <TextBlock Text="Accessibility" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel HorizontalAlignment="Center">
+                                                <ctl:ScoreRing Value="{Binding SelectedPageSpeed.BestPracticesScore, TargetNullValue=0}" Suffix="" Width="70" Height="70" Thickness="6"/>
+                                                <TextBlock Text="Best practices" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel HorizontalAlignment="Center">
+                                                <ctl:ScoreRing Value="{Binding SelectedPageSpeed.SeoScore, TargetNullValue=0}" Suffix="" Width="70" Height="70" Thickness="6"/>
+                                                <TextBlock Text="SEO" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                            </StackPanel>
+                                        </UniformGrid>
+                                        <TextBlock Text="Lab data" Style="{StaticResource H2}" Margin="0,6,0,6"/>
+                                        <UniformGrid Columns="3">
+                                            <TextBlock Margin="0,3"><Run Text="LCP " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.Lcp, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Margin="0,3"><Run Text="CLS " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.Cls, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Margin="0,3"><Run Text="TBT " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.Tbt, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Margin="0,3"><Run Text="FCP " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.Fcp, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Margin="0,3"><Run Text="Speed Index " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.SpeedIndex, Mode=OneWay}"/></TextBlock>
+                                        </UniformGrid>
+                                        <TextBlock Text="Real users (Chrome UX Report)" Style="{StaticResource H2}" Margin="0,12,0,6"/>
+                                        <TextBlock Style="{StaticResource Muted}" Text="Not enough real-user data for this URL."
+                                                   Visibility="{Binding SelectedPageSpeed.FieldLcp, Converter={StaticResource NoValueToVis}}"/>
+                                        <StackPanel Visibility="{Binding SelectedPageSpeed.FieldLcp, Converter={StaticResource HasValueToVis}}">
+                                            <TextBlock Margin="0,2"><Run Text="Overall: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.FieldCategory, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Margin="0,2"><Run Text="LCP: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.FieldLcp, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Margin="0,2"><Run Text="INP: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.FieldInp, Mode=OneWay}"/></TextBlock>
+                                            <TextBlock Margin="0,2"><Run Text="CLS: " Foreground="#8E8E9E"/><Run Text="{Binding SelectedPageSpeed.FieldCls, Mode=OneWay}"/></TextBlock>
+                                        </StackPanel>
+                                        <TextBlock Text="Opportunities" Style="{StaticResource H2}" Margin="0,12,0,6"/>
+                                        <ItemsControl ItemsSource="{Binding SelectedPageSpeed.Opportunities}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding StringFormat='• {0}'}" TextWrapping="Wrap" Margin="0,2"/></DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- ============================== 5. Domain overview ============================== -->
+                <Grid Margin="24,16" Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=5}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Domain overview" Style="{StaticResource H2}"/>
+                            <TextBlock Style="{StaticResource Muted}" Margin="0,-6,0,12"
+                                       Text="Organic traffic, ranking keywords, Authority Score and backlinks come from Semrush's own database — they cannot be measured by crawling a site. Enter your Semrush API key in Settings to load them (each request spends Semrush API units)."/>
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="10,0,0,0">
+                                    <TextBlock Text="Database" VerticalAlignment="Center" Margin="0,0,6,0" Style="{StaticResource Muted}"/>
+                                    <ComboBox ItemsSource="{Binding SemrushDatabases}" Text="{Binding DomainDatabase}" IsEditable="True" Width="70" VerticalContentAlignment="Center"/>
+                                    <Button Style="{StaticResource PrimaryBtn}" Command="{Binding LoadDomainCommand}" Content="Analyze domain" Margin="10,0,8,0"/>
+                                    <Button Style="{StaticResource ToolBtn}" Command="{Binding ExportKeywordsCommand}" Content="Export keywords" Margin="0"
+                                            IsEnabled="{Binding HasDomainMetrics}"/>
+                                </StackPanel>
+                                <TextBox Text="{Binding DomainInput, UpdateSourceTrigger=PropertyChanged}"/>
+                            </DockPanel>
+                            <TextBlock Text="{Binding DomainStatus}" Style="{StaticResource Muted}" Margin="0,8,0,0"
+                                       Visibility="{Binding DomainStatus, Converter={StaticResource HasValueToVis}}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <UniformGrid Grid.Row="1" Columns="6" Margin="0,12,0,0" Visibility="{Binding HasDomainMetrics, Converter={StaticResource BoolToVis}}">
+                        <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Authority Score" Style="{StaticResource Muted}"/>
+                                <TextBlock Text="{Binding DomainMetrics.AuthorityScore, TargetNullValue=-}" Style="{StaticResource BigNumber}" Foreground="{StaticResource Accent}"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Organic traffic / mo" Style="{StaticResource Muted}"/>
+                                <TextBlock Text="{Binding DomainMetrics.OrganicTraffic, StringFormat=N0, TargetNullValue=-}" Style="{StaticResource BigNumber}" Foreground="White"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Organic keywords" Style="{StaticResource Muted}"/>
+                                <TextBlock Text="{Binding DomainMetrics.OrganicKeywords, StringFormat=N0, TargetNullValue=-}" Style="{StaticResource BigNumber}" Foreground="White"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Traffic value ($)" Style="{StaticResource Muted}"/>
+                                <TextBlock Text="{Binding DomainMetrics.OrganicCost, StringFormat=N0, TargetNullValue=-}" Style="{StaticResource BigNumber}" Foreground="White"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Backlinks" Style="{StaticResource Muted}"/>
+                                <TextBlock Text="{Binding DomainMetrics.Backlinks, StringFormat=N0, TargetNullValue=-}" Style="{StaticResource BigNumber}" Foreground="White"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Referring domains" Style="{StaticResource Muted}"/>
+                                <TextBlock Text="{Binding DomainMetrics.ReferringDomains, StringFormat=N0, TargetNullValue=-}" Style="{StaticResource BigNumber}" Foreground="White"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Grid Grid.Row="2" Margin="0,12,0,0" Visibility="{Binding HasDomainMetrics, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="Top organic keywords" Style="{StaticResource H2}"/>
+                            <DataGrid ItemsSource="{Binding DomainMetrics.TopKeywords}" CanUserSortColumns="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Keyword" Binding="{Binding Keyword}" Width="2*"/>
+                                    <DataGridTextColumn Header="Pos." Binding="{Binding Position}" Width="50"/>
+                                    <DataGridTextColumn Header="Volume" Binding="{Binding SearchVolume, StringFormat=N0}" Width="80"/>
+                                    <DataGridTextColumn Header="CPC" Binding="{Binding Cpc}" Width="56"/>
+                                    <DataGridTextColumn Header="Traffic %" Binding="{Binding TrafficPercent}" Width="70"/>
+                                    <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="2*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                        <Border Grid.Column="2" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Organic competitors" Style="{StaticResource H2}"/>
+                                <ItemsControl ItemsSource="{Binding DomainMetrics.Competitors}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,4"/></DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+
+                <!-- ============================== 6. History ============================== -->
+                <DockPanel Margin="24,16" Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=6}">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource ToolBtn}" Command="{Binding RefreshHistoryListCommand}" Content="Refresh" Margin="0"/>
+                        <StackPanel>
+                            <TextBlock Text="Audit history" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Muted}" Text="Every audit is saved. Open one to see its results; re-running the same site shows the change since the previous audit."/>
+                        </StackPanel>
+                    </DockPanel>
+                    <Grid>
+                        <TextBlock Text="No audits yet." Style="{StaticResource Muted}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding History.Count, Converter={StaticResource NoValueToVis}}"/>
+                        <DataGrid ItemsSource="{Binding History}" x:Name="HistoryGrid" CanUserSortColumns="True"
+                                  Visibility="{Binding History.Count, Converter={StaticResource HasValueToVis}}">
+                            <DataGrid.InputBindings>
+                                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenHistoryCommand}"
+                                              CommandParameter="{Binding SelectedItem, ElementName=HistoryGrid}"/>
+                            </DataGrid.InputBindings>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Date" Binding="{Binding StartedAt, StringFormat='yyyy-MM-dd HH:mm'}" Width="130"/>
+                                <DataGridTextColumn Header="Project" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Start URL" Binding="{Binding StartUrl}" Width="1.4*"/>
+                                <DataGridTextColumn Header="Pages" Binding="{Binding Pages, StringFormat=N0}" Width="64"/>
+                                <DataGridTemplateColumn Header="Health" Width="64" SortMemberPath="SiteHealth">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding SiteHealth, StringFormat={}{0}%}" FontWeight="SemiBold" Foreground="{Binding SiteHealth, Converter={StaticResource ScoreBrush}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Errors" Binding="{Binding Errors, StringFormat=N0}" Width="64"/>
+                                <DataGridTextColumn Header="Warnings" Binding="{Binding Warnings, StringFormat=N0}" Width="74"/>
+                                <DataGridTextColumn Header="Notices" Binding="{Binding Notices, StringFormat=N0}" Width="68"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="110"/>
+                                <DataGridTemplateColumn Width="230">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource ToolBtn}" Content="Continue" Padding="10,2" Margin="0,0,6,0" ToolTip="Keep these pages and crawl the rest"
+                                                        Command="{Binding DataContext.ContinueHistoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"
+                                                        IsEnabled="{Binding DataContext.IsRunning, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource InvBool}}"/>
+                                                <Button Style="{StaticResource ToolBtn}" Content="Open" Padding="10,2" Margin="0,0,6,0"
+                                                        Command="{Binding DataContext.OpenHistoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                                <Button Style="{StaticResource DangerBtn}" Content="Delete" Padding="10,2" Margin="0"
+                                                        Command="{Binding DataContext.DeleteHistoryCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </DockPanel>
+
+                <!-- ============================== 7. Settings ============================== -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding SelectedSection, Converter={StaticResource IntEqualsToVis}, ConverterParameter=7}">
+                    <StackPanel Margin="32,28" MaxWidth="980" HorizontalAlignment="Left">
+                        <DockPanel Margin="0,0,0,16">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Style="{StaticResource ToolBtn}" Command="{Binding OpenDataFolderCommand}" Content="Open data folder"/>
+                                <Button Style="{StaticResource PrimaryBtn}" Command="{Binding SaveSettingsCommand}" Content="Save settings" Margin="0"/>
+                            </StackPanel>
+                            <TextBlock Text="Settings" Style="{StaticResource H1}"/>
+                        </DockPanel>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Crawler" Style="{StaticResource H2}"/>
+                                <UniformGrid Columns="4">
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Max pages" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.MaxPages}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Max depth" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.MaxDepth}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Parallel requests" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.Concurrency}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Timeout (seconds)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.TimeoutSeconds}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Delay between requests (ms)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.CrawlDelayMs}"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                                <TextBlock Text="User agent" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding Settings.UserAgent}" Margin="0,0,0,10"/>
+                                <CheckBox Content="Respect robots.txt (skip disallowed URLs and honour Crawl-delay)" IsChecked="{Binding Settings.RespectRobotsTxt}"/>
+                                <CheckBox Content="Check external links for broken targets" IsChecked="{Binding Settings.CheckExternalLinks}"/>
+                                <CheckBox Content="Treat subdomains as part of the site" IsChecked="{Binding Settings.IncludeSubdomains}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Check thresholds" Style="{StaticResource H2}"/>
+                                <UniformGrid Columns="4">
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Slow page (ms)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.SlowPageMs}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Large HTML (KB)" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.LargePageKb}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Low word count" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.MinWordCount}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12"/>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Title min chars" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.TitleMin}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Title max chars" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.TitleMax}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Description min chars" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.DescriptionMin}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,14,12">
+                                        <TextBlock Text="Description max chars" Style="{StaticResource FieldLabel}"/>
+                                        <TextBox Text="{Binding Settings.DescriptionMax}"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <TextBlock Text="API keys (optional)" Style="{StaticResource H2}"/>
+                                <TextBlock Style="{StaticResource Muted}" Margin="0,-6,0,12"
+                                           Text="Keys are stored encrypted for your Windows account (DPAPI)."/>
+                                <TextBlock Text="Google PageSpeed Insights API key — free, from Google Cloud Console (APIs &amp; Services → PageSpeed Insights API)" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding PageSpeedApiKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" FontFamily="Cascadia Mono, Consolas"/>
+                                <TextBlock Text="Semrush API key — for Domain overview (traffic, keywords, backlinks); needs a Semrush plan with API access" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Text="{Binding SemrushApiKey, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12" FontFamily="Cascadia Mono, Consolas"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Margin="0,16,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Activity log" Style="{StaticResource H2}"/>
+                                <ListBox ItemsSource="{Binding LogEntries}" Height="200" FontFamily="Cascadia Mono, Consolas" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- ============================== Status bar ============================== -->
+        <Border Grid.Row="1" Grid.ColumnSpan="2" Background="#103B35" Padding="12,0">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Foreground="#9FE6D6"
+                           Text="{Binding ProgressText}"/>
+                <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" FontSize="11.5" Foreground="#D7F5EE" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
